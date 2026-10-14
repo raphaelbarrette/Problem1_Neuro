@@ -48,14 +48,36 @@ def construire_pattes(cpg, inh, N_PAIRES, delta=0*ms):
     n, k, s, sw, st, d = indices(N_PAIRES, delta)
     P = {nom: pop(n, tau_i=TAU_BLOC if nom.startswith('IN') else 10*ms) for nom in NOMS}
     S = []
+
+    # LEVER ET POSER ne dependent pas de la direction forward ou backward
+    # donc directement liees au CPG et recoivent du signal avant ARRIERE et AVANT.
+    # C'est parce que la connection de passent pas par les interneurones qui,
+    # avec le biais B_ET decide si on fait AVANT ou ARRIERE selong le mode.
     for nom, src in [('LEVER', sw), ('POSER', st)]:
         S.append(syn(cpg, P[nom], W_MOT, src, range(n), delay=d))
+
+    # Synapses des interneurones avec le CPG avec un poids de W_ET = 0.6
+    # comme ca les interneurones ne dechargent pas s'il n'ont pas le biais B_ET = 0.6.
+    # On peut gerer la direction avec ce mecanisme.
     for nom, src in [('IN_sw_av', sw), ('IN_sw_ar', sw), ('IN_st_av', st), ('IN_st_ar', st)]:
         S.append(syn(cpg, P[nom], W_ET, src, range(n), delay=d))
+
+    # Synapses des interneurones avec les neurones motrices avec poids de W_MOT = 1.5
+    # pour s'assurer que si une interneurone decharge, la neurone AVANT/ARRIERE connecte
+    # va depasser son seuil et decharger.
     for a_, b_ in [('IN_sw_av', 'AVANT'), ('IN_st_av', 'AVANT'), ('IN_sw_ar', 'ARRIERE'), ('IN_st_ar', 'ARRIERE')]:
         S.append(syn(P[a_], P[b_], W_MOT, range(n), range(n)))
+
+    # Synapses d'inhibation entre les neurones de mouvements contraires
+    # ARRIERE/AVANT et LEVER/POSER
     for a_, b_ in [('LEVER', 'POSER'), ('POSER', 'LEVER'), ('AVANT', 'ARRIERE'), ('ARRIERE', 'AVANT')]:
         S.append(syn(P[a_], P[b_], W_CONTRA, range(n), range(n), inhib=True))
+
+    # Synapses de neurone d'inhibation INHIB_G et INHIB_D vers les interneuones
+    # lorsqu'on veut tourner le compteur du cote choisi va decharger sur INHIB_G
+    # ou INHIB_D (dependament du cote) certains cycle selon une frequence choisi.
+    # Les interneurones pour le tripode seront bloquer et ne dechargerons pas
+    # et un cote avancera plus que l'autre ce qui causera le virage.
     for nom in NOMS[4:]:
         S.append(syn(inh, P[nom], W_INHIB, s, range(n), inhib=True, delay=k * delta))
     return P, S
@@ -64,6 +86,8 @@ def construire_pattes(cpg, inh, N_PAIRES, delta=0*ms):
 def cpg_pop(I_drive, **kw):
     '''CPG (A, B) : adaptation forte, B part adapte -> demarre en antiphase.'''
     cpg = pop(2, tau=10*ms, tau_i=20*ms, tau_a=200*ms, inc_a=1.5, I=I_drive, **kw)
+    # A en index 0 commence avec v = 0.5 et a = 0 donc decharge avant
+    # B en index 1 qui a v = 0 et a = 1.
     cpg.v, cpg.a = [0.5, 0], [0, 1]
     return cpg
 
@@ -79,6 +103,9 @@ def simuler(N_PAIRES=3, I_drive=2.0, mode_G='avant', mode_D='avant',
     cpt = pop(2, tau=100*second)              # COMPTEUR_G, COMPTEUR_D (fuite tres lente)
     inh = pop(2)                              # INHIB_G, INHIB_D
     P, S = construire_pattes(cpg, inh, N_PAIRES, delta)
+
+    # On donne le biais au bonnes interneurones selon le mode. 
+    # Ces neurones seront ceux les seules qui pourront decharger.
     for nom in ['IN_sw_av', 'IN_st_ar']: P[nom].Ib = B_ET * avant
     for nom in ['IN_sw_ar', 'IN_st_av']: P[nom].Ib = B_ET * ~avant
     S.append(syn(cpg, cpg, W_AB, [0, 1], [1, 0], inhib=True))

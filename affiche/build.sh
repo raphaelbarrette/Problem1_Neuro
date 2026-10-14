@@ -1,6 +1,6 @@
 #!/bin/sh
 # Compile l'affiche (et l'annexe si presente) avec XeLaTeX + BibTeX.
-for f in affiche annexe; do
+for f in affiche annexe strategie; do
   [ -f $f.tex ] || continue
   xelatex -interaction=nonstopmode $f.tex > /dev/null
   bibtex $f > /dev/null 2>&1
