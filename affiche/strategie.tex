@@ -41,6 +41,7 @@
 \setlength{\parskip}{0.55em}
 \setlist{itemsep=0.25em, topsep=0.3em}
 \renewcommand{\arraystretch}{1.3}
+\setlength{\emergencystretch}{2em}
 
 % Une etape de la demarche : question, idee, source, ce qu'on a fait
 \newcommand{\champ}[2]{\par\noindent\textbf{\color{bleu}#1} #2\par}
@@ -55,7 +56,7 @@
 \vspace{0.3em}
 {\large Problème 1 --- Locomotion hexapode par un réseau de neurones à décharges\par}
 \vspace{0.2em}
-{\color{gris} GEI723 · Automne 2026 · Raphaël Barrette, Émile [NOM] · Notes pour la défense\par}
+{\color{gris} GEI723 · Automne 2026 · Raphaël Barrette, Émile Jacques-Tighe · Notes pour la défense\par}
 \vspace{0.8em}
 \hrule
 \vspace{0.6em}
@@ -63,18 +64,6 @@
 Ce document présente notre démarche sur papier, dans l'ordre où les problèmes se posent. Chaque étape
 suit le même format : \textbf{la question}, \textbf{l'idée retenue}, \textbf{la source} (citée
 précisément) et \textbf{ce que nous avons fait} dans le réseau.
-
-% ====================================================================
-\section{Deux points à ne pas confondre}
-
-\attention{Un tripode n'est pas un côté.}{Les trois pattes d'un même côté ne se lèvent jamais
-ensemble (le corps basculerait). Un tripode mélange les deux côtés : \textbf{G1, D2, G3} contre
-\textbf{D1, G2, D3}. Les pattes au sol forment toujours un triangle d'appui, deux d'un côté, une de
-l'autre.}
-
-\vspace{0.4em}
-\attention{A et B ne s'auto-inhibent pas.}{Ils s'inhibent \emph{mutuellement} (chacun freine
-l'autre, poids W\_AB). Ce qui freine un neurone \emph{lui-même}, c'est sa fatigue, l'adaptation $a$.}
 
 % ====================================================================
 \section{La démarche, étape par étape}
@@ -218,12 +207,256 @@ ainsi de suite.
 \textbf{Pour passer en marche arrière}, il suffit de déplacer le biais vers \code{IN\_sw\_ar} et
 \code{IN\_st\_av}. Le CPG et toutes les connexions restent identiques.
 
+% --------------------------------------------------------------------
+\subsection*{Étape 6 --- Marche arrière et ligne droite}
+
+\champ{Ce que nous avons fait.}{Rien de nouveau dans le réseau : on déplace seulement le biais vers
+\code{IN\_sw\_ar} et \code{IN\_st\_av}. Pendant le swing, la patte reçoit LEVER + ARRIÈRE ; pendant
+le stance, POSER + AVANT. Chaque poussée a lieu dans l'autre sens et le corps recule.}
+\champ{Ligne droite.}{Ce n'est pas un mécanisme à part : c'est une conséquence de la symétrie. Les
+deux côtés ont le même mode et poussent autant, donc $v_G = v_D$ et $\omega = 0$. Résultat :
+$x = +2{,}00$ en avant et $-2{,}00$ en arrière après 2~s. Le petit $y = -0{,}07$ vient du
+dandinement du tripode : à chaque phase, un tripode a deux pattes d'un côté et une de l'autre, ce
+qui se compense sur un cycle complet.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 7 --- Rotation sur place}
+
+\champ{Question.}{Comment tourner sans avancer ?}
+\champ{Idée retenue.}{Faire pousser les deux côtés en \textbf{sens opposés} : le côté gauche en
+mode avant, le côté droit en mode arrière (ou l'inverse pour tourner dans l'autre sens).}
+\champ{Source.}{Otis (2004), p.~112--113 \cite{otis2004} : un insecte tourne en modifiant les pas
+d'un seul côté, jusqu'à les inverser pour les virages serrés.}
+\champ{Ce que nous avons fait.}{Le biais de mode est réglé \textbf{par patte}, selon son côté :}
+\begin{center}
+\small
+\begin{tabular}{lcccccc}
+  \toprule
+  \textbf{Patte} & G1 & D1 & G2 & D2 & G3 & D3\\ \midrule
+  Biais sur \code{IN\_sw\_av}, \code{IN\_st\_ar} & 0,6 & 0 & 0,6 & 0 & 0,6 & 0\\
+  Biais sur \code{IN\_sw\_ar}, \code{IN\_st\_av} & 0 & 0,6 & 0 & 0,6 & 0 & 0,6\\ \bottomrule
+\end{tabular}
+\end{center}
+Le CPG et les connexions ne changent pas : c'est exactement le même réseau qu'en marche avant, avec
+le biais placé différemment de chaque côté. C'est possible parce que chaque patte a ses propres
+interneurones.
+
+\champ{Résultat.}{Les poussées gauches font avancer, les droites font reculer :
+$v_G = -v_D$, donc $v = (v_G + v_D)/2 = 0$ et $\omega = (v_D - v_G)/L \neq 0$. Le corps tourne sur
+place : $\theta = -4{,}0$~rad en 2~s, et le centre ne bouge presque pas ($|x|, |y| < 0{,}04$).}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 8 --- Déplacement en cercle (contribution originale)}
+
+\champ{Question.}{Comment tourner \emph{tout en avançant}, avec un rayon réglable ?}
+\champ{Idée retenue.}{Un côté \textbf{saute un pas sur $n$} : ses pattes se lèvent et se posent,
+mais ne poussent pas pendant ce cycle. Ce côté avance moins, donc l'hexapode tourne vers lui.}
+\champ{Source.}{Idée de départ : Otis (2004), p.~112 \cite{otis2004} (raccourcir les pas d'un côté,
+parfois jusqu'à zéro). Le mécanisme neuronal est de nous.}
+\champ{Ce que nous avons fait.}{Deux neurones par côté, quel que soit le nombre de pattes :}
+\begin{itemize}
+  \item \textbf{COMPTEUR\_s} : chaque décharge de A (une par cycle) lui ajoute $1/n + 0{,}01$. Il
+        fuit très lentement ($\tau$ = 100~s), donc il \emph{accumule} : il atteint le seuil après
+        $n$ décharges de A, décharge, puis repart de 0. Le $+0{,}01$ garantit qu'il dépasse
+        strictement le seuil après exactement $n$ cycles.
+  \item \textbf{INHIB\_s} : relais. Quand COMPTEUR\_s décharge, INHIB\_s envoie une inhibition
+        ($g_i = 3$) aux 4 interneurones de toutes les pattes du côté $s$. On passe par INHIB parce
+        qu'un neurone est soit excitateur, soit inhibiteur (principe de Dale).
+  \item \textbf{Durée du blocage} : un IN biaisé décharge seulement si $0{,}6 - g_i + 0{,}6 > 1$,
+        soit $g_i < 0{,}2$. Avec $g_i = 3\,e^{-t/55\,\mathrm{ms}}$ :
+        \[ t = 55 \ln 15 \approx 149\ \text{ms}, \]
+        assez pour couvrir les deux phases d'un cycle (197~ms) et se lever avant le suivant.
+  \item Le blocage part de A et ne traverse que deux neurones (environ 0,3~ms), alors que les
+        commandes du CPG arrivent aux pattes après 3~ms : les IN sont donc déjà bloqués quand les
+        commandes de ce cycle arrivent.
+\end{itemize}
+
+\champ{Rayon.}{Le côté droit pousse $(n - 1)$ cycles sur $n$ : $v_D = v_G\,(1 - 1/n)$. On en déduit
+\[ R = \frac{v}{|\omega|} = \frac{L}{2}\,(2n - 1) . \]}
+
+\begin{center}
+\small
+\begin{tabular}{cccl}
+  \toprule
+  $n$ & \textbf{R prévu} & \textbf{R mesuré} & \textbf{Comportement}\\ \midrule
+  1 & 0,50 L & 0,50 L & le côté droit ne pousse jamais : pivot autour de lui\\
+  2 & 1,50 L & 1,50 L & un pas sur deux\\
+  3 & 2,50 L & 2,55 L & deux pas sur trois\\ \bottomrule
+\end{tabular}
+\end{center}
+
+\attention{Limite à mentionner.}{La durée du blocage (149~ms) est fixe. Elle correspond à un cycle
+seulement autour de I\_drive $\approx$ 2 ; à d'autres vitesses, le côté pourrait sauter un peu plus
+ou un peu moins d'un pas.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 9 --- De 6 à 400 pattes}
+
+\champ{Ce que nous avons fait.}{On change seulement \code{N\_PAIRES}. La règle $(k + s) \bmod 2$
+alterne les segments pour tout $N$, chaque patte reçoit ses 8 neurones, et il reste toujours
+\textbf{4 neurones de virage} (un COMPTEUR et un INHIB par côté), connectés à toutes les pattes de
+leur côté.}
+\champ{Option : onde métachronale.}{Un délai $k\Delta$ sur les connexions du segment $k$ fait
+arriver les commandes de l'avant vers l'arrière (Δ = 0,5~ms pour 200 paires). Le même délai est
+appliqué à INHIB, pour que le blocage d'un virage suive la même onde.}
+\champ{Pour garder la même vitesse.}{Chaque patte vaut $d/N$ au décodage : le corps avance de $d$
+par cycle quel que soit le nombre de pattes.}
+
+% ====================================================================
+\section{Partie II : système pseudo-autonome}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 10 --- Remplacer les réglages faits à la main par des neurones}
+
+\champ{Question.}{En Partie I, le mode, le virage et I\_drive sont fixés avant la simulation.
+Comment les rendre dépendants de l'environnement ?}
+\champ{Idée retenue.}{On garde \textbf{tout le réseau de la Partie I}. Les perceptions modifient le
+rythme sans le remplacer : le CPG continue de tourner, et des \textbf{neurones de commande}
+remplacent les biais statiques.}
+\champ{Source.}{Otis (2004), p.~108 \cite{otis2004} : « le rythme de base est généré dans le système
+nerveux central […] et il est modifié par les perceptions de l'environnement » ; principe 1 :
+le CPG est activé par des neurones de commande. Cruse et al. (1998), p.~1445 \cite{cruse1998} : un
+niveau supérieur fixe la vitesse et la direction.}
+\champ{Ce que nous avons fait.}{}
+\begin{itemize}
+  \item \textbf{Quatre neurones de commande} : CMD\_AV\_G, CMD\_AR\_G, CMD\_AV\_D, CMD\_AR\_D
+        (un « avant » et un « arrière » par côté).
+  \item \textbf{Le biais statique disparaît.} CMD\_AV\_s est branché sur \code{IN\_sw\_av} et
+        \code{IN\_st\_ar} de chaque patte du côté $s$ ; CMD\_AR\_s sur \code{IN\_sw\_ar} et
+        \code{IN\_st\_av}. Tant qu'un CMD décharge, il fournit le biais à ses IN.
+  \item \textbf{Comment le biais est fourni} : chaque décharge du CMD (environ 100~Hz) fait monter
+        un courant lent $g_s$ des IN vers 0,9 ($g_s \leftarrow g_s + 0{,}5\,(0{,}9 - g_s)$). Entre
+        deux décharges, $g_s$ redescend un peu ($\tau_s$ = 50~ms) et reste entre 0,63 et 0,76,
+        toujours au-dessus des 0,4 nécessaires ($0{,}6 + g_s > 1$). Si le CMD se tait, $g_s$
+        retombe en environ 50~ms et ces IN ne peuvent plus décharger.
+  \item \textbf{Marche avant par défaut} : c'est \textbf{CMD\_AV} (et non un capteur) qui reçoit
+        un biais tonique, I\_CMD = 1,8 > 1. Sans aucun contact, CMD\_AV\_G et CMD\_AV\_D déchargent
+        en continu et l'hexapode avance, exactement comme en Partie I.
+  \item \textbf{Basculement avant / arrière} : CMD\_AV\_s $\dashv\vdash$ CMD\_AR\_s s'inhibent
+        mutuellement (gagnant-prend-tout) : un seul des deux est actif de chaque côté.
+        Source : Cruse et al. (1998), p.~1437 \cite{cruse1998} : deux unités de sortie
+        mutuellement exclusives, et « activity in a sensory input causes a transition by
+        inhibiting the active output unit and exciting the inactive one ». Différence : Cruse
+        stabilise l'unité active par rétroaction positive ; nous utilisons un biais constant et
+        l'inhibition mutuelle.
+\end{itemize}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 11 --- Les capteurs : l'intensité devient un nombre de décharges}
+
+\champ{Idée retenue.}{Quatre groupes sensoriels, un par direction de contact :
+\textbf{SENS\_AV} (face), \textbf{SENS\_AR} (arrière), \textbf{SENS\_G} et \textbf{SENS\_D}
+(flancs). Un contact injecte un courant $2 \times$ intensité dans son groupe.}
+\champ{Ce que nous avons fait.}{Chaque groupe a \textbf{10 neurones aux seuils différents} (0,2 à
+1,8). Un contact faible n'en fait décharger que quelques-uns, lentement ; un contact fort en
+\emph{recrute} davantage, et plus vite. L'intensité est donc codée à la fois par le nombre de
+neurones actifs et par leur fréquence.}
+\champ{Source.}{En partie Porcino (1990), §2.1 \cite{porcino1990} : un capteur dont la fréquence
+augmente avec le stimulus. Le recrutement par seuils différents vient du cours.}
+\champ{Persistance.}{Un contact dure 100~ms, mais la réaction doit durer plus longtemps. Les
+synapses capteur → commande sont \textbf{lentes} : chaque décharge ajoute du courant $g_s$ qui
+décroît en $\tau_{\mathrm{persist}}$ = 800~ms. Plus le contact est fort, plus il y a de décharges,
+et plus la réaction dure. (Concept du cours ; aucune des lectures.)}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 12 --- Obstacle de face : reculer}
+
+\champ{Ce que nous avons fait.}{SENS\_AV \textbf{excite} CMD\_AR\_G et CMD\_AR\_D et
+\textbf{inhibe} CMD\_AV\_G et CMD\_AV\_D (synapses lentes). Les deux côtés basculent en marche
+arrière : seul le biais des IN change, le CPG continue au même rythme.}
+\champ{Résultat (intensité 0,8).}{CMD\_AR\_G prend la main 36~ms après le contact ; l'hexapode recule
+de 1,2 unité pendant 1,3~s. Quand le courant lent retombe, le biais tonique de CMD\_AV le fait
+regagner : la marche avant reprend toute seule. La durée du recul croît avec l'intensité : nulle
+sous 0,3 ; 0,16~s à 0,3 ; 1,03~s à 0,6 ; 1,53~s à 1,0.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 13 --- Obstacle sur un flanc : tourner du côté opposé}
+
+\champ{Interprétation.}{Une patte ne bouge que d'avant en arrière (énoncé, p.~2), donc l'hexapode ne
+peut pas faire de pas de côté : « aller à gauche » veut dire \textbf{tourner} à gauche.}
+\champ{Idée retenue.}{Réutiliser le compteur de virage, en le rendant \textbf{gradué} : plus le
+contact est fort, plus le virage est serré, jusqu'au pivot.}
+\champ{Source.}{Otis (2004), p.~112--113 \cite{otis2004} : pas plus courts d'un côté, puis pas nuls,
+puis pas inversés pour les virages serrés. C'est la même gradation que la nôtre.}
+\champ{Ce que nous avons fait.}{}
+\begin{itemize}
+  \item \textbf{Un compteur différent de la Partie I} (à dire clairement) : il reçoit toujours A
+        (poids 0,35) mais fuit vite ($\tau$ = 150~ms), donc il \emph{n'atteint jamais le seuil
+        seul}. Le courant lent d'un capteur de flanc s'y ajoute et le fait décharger, d'autant plus
+        souvent que le contact est fort.
+  \item \textbf{Croisement} : SENS\_D → COMPTEUR\_G. Contact à droite → le côté gauche saute des
+        pas → l'hexapode tourne à \textbf{gauche}, loin de l'obstacle. Symétrique pour SENS\_G.
+  \item \textbf{Pivot} : SENS\_D excite aussi CMD\_AR\_G avec un poids faible (0,025). Seul un
+        contact fort l'amène au seuil : le côté gauche passe en marche arrière, et on retrouve la
+        rotation de l'étape 7.
+  \item \textbf{CMD\_AR\_s inhibe COMPTEUR\_s} : pendant un pivot, le côté ne doit pas en plus
+        sauter des pas, sinon il ne pousserait plus du tout.
+\end{itemize}
+\champ{Résultat (contact à droite).}{Faible (0,3) : courbe douce, $\theta = +19°$. Moyen (0,6) :
+virage serré, $+76°$. Fort (1,0) : pivot, $+122°$. Contact à gauche (0,6) : virage miroir,
+$-84°$.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 14 --- Heurté par derrière : accélérer}
+
+\champ{Idée retenue.}{En Partie I, la vitesse ne dépend que du courant reçu par le CPG. Il suffit
+donc d'\textbf{ajouter du courant à A et B}.}
+\champ{Source.}{Beer et al. (1992), p.~358 \cite{beer1992} : l'excitation reçue par le pacemaker
+règle le temps entre ses salves ; un capteur peut aussi l'exciter.}
+\champ{Ce que nous avons fait.}{SENS\_AR excite A et B par une synapse lente (0,01) : leur
+courant effectif augmente temporairement, comme si I\_drive augmentait.}
+\champ{Résultat.}{La fréquence passe de 5,1~Hz à 5,8, 7,3 ou 9,8~Hz (intensité 0,3, 0,6 ou 1,0),
+puis redescend progressivement vers 5,1~Hz.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 15 --- Deux contacts en même temps}
+
+\champ{Question.}{Que faire si l'hexapode est touché de face et sur un flanc en même temps ?}
+\champ{Idée retenue.}{Une \textbf{hiérarchie} : avant > flancs > arrière ; entre gauche et droite,
+le plus fort gagne. Reculer devant un obstacle est plus urgent que tourner ou accélérer.}
+\champ{Source.}{Cruse et al. (1998), p.~1436 \cite{cruse1998} : des modules en parallèle dont la
+sortie est contrôlée « in a hierarchical manner » (subsomption, Brooks 1986), ou par des
+influences inhibitrices entre modules. L'ordre choisi est de nous.}
+\champ{Ce que nous avons fait.}{Inhibition rapide entre groupes de capteurs : SENS\_AV inhibe
+SENS\_G, SENS\_D et SENS\_AR ; les flancs inhibent SENS\_AR ; SENS\_G et SENS\_D s'inhibent
+mutuellement.}
+\champ{Résultat.}{Le groupe prioritaire supprime presque entièrement l'autre : avec AV 0,6 + D 0,6,
+SENS\_AV fait 73 décharges et SENS\_D une seule ; avec G 0,4 + D 0,8, SENS\_D en fait 105 et
+SENS\_G aucune.}
+
+% --------------------------------------------------------------------
+\subsection*{Étape 16 --- Adapter le comportement par les paramètres}
+
+L'énoncé demande de montrer qu'on peut changer le comportement en modifiant poids, délais et
+paramètres. Chaque paramètre agit sur un seul comportement :
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\ttfamily}l X X}
+  \toprule
+  \textrm{\textbf{Paramètre}} & \textbf{Effet} & \textbf{Mesure}\\ \midrule
+  W\_AV\_AR & sensibilité : intensité minimale pour reculer & 0,03 → 0,08 : seuil de 0,4 à 0,25\\
+  $\tau$\_persist & durée de la réaction & doubler $\tau$ double le recul (0,76 → 1,53 → 3,07~s)\\
+  DELAI\_SENS & temps de réaction & +100~ms → +0,1 de distance avant de reculer\\
+  W\_LAT\_AR & intensité où le virage devient un pivot & 0,02 → 0,035 : de 0,8 à 0,6\\
+  seuils & plage d'intensités distinguées & seuils serrés (0,9 à 1,1) : presque tout-ou-rien\\ \bottomrule
+\end{tabularx}
+\end{center}
+
+\champ{Pourquoi « pseudo-autonome ».}{Le robot n'apprend pas : ses poids sont fixés. Mais il change
+de comportement selon son environnement. Cruse et al. (1998), p.~1435 \cite{cruse1998} : « even
+hardwired systems with no learning can show considerable adaptability ».}
+
+\attention{Erreur fréquente à éviter.}{Le biais tonique qui fait avancer par défaut est sur
+\textbf{CMD\_AV}, pas sur SENS\_AV. SENS\_AV est le capteur de face : il ne décharge que lors d'un
+contact, et c'est lui qui déclenche le recul.}
+
 % ====================================================================
 \section*{Récapitulatif des sources}
 
 \begin{center}
 \small
-\begin{tabularx}{\linewidth}{l X l}
+\begin{tabularx}{\linewidth}{l >{\raggedright\arraybackslash}X l}
   \toprule
   \textbf{Pièce du réseau} & \textbf{Ce qu'on y a pris} & \textbf{Source}\\ \midrule
   Tripode et règle $(k + s) \bmod 2$ & alternance de deux groupes de trois pattes & Otis, fig.~5.2(a), p.~110\\
@@ -231,13 +464,17 @@ ainsi de suite.
   Vitesse & une seule entrée règle la fréquence & Beer et al., p.~358\\
   Motoneurones de patte & pied / avant / arrière ; pied séparé en LEVER / POSER & Beer et al., fig.~2, p.~359\\
   Interneurones « ET » & --- & original\\
-  Compteur de virage & idée : raccourcir les pas d'un côté pour tourner & Otis, p.~112 (mécanisme original)\\ \bottomrule
+  Compteur de virage & idée : raccourcir les pas d'un côté pour tourner & Otis, p.~112 (mécanisme original)\\
+  Rotation sur place & pas inversés d'un côté & Otis, p.~112--113\\ \midrule
+  Neurones de commande & le CPG est piloté par des commandes ; les perceptions modifient le rythme & Otis, p.~108 ; Cruse et al., p.~1445\\
+  Basculement avant / arrière & deux sorties exclusives ; le capteur inhibe l'une et excite l'autre & Cruse et al., p.~1437\\
+  Capteurs & fréquence croissante avec le stimulus & Porcino, §2.1 (recrutement : cours)\\
+  Persistance & synapses lentes & cours\\
+  Virages gradués & pas plus courts, nuls, puis inversés & Otis, p.~112--113\\
+  Accélération & excitation du pacemaker & Beer et al., p.~358\\
+  Sélection d'action & hiérarchie / inhibition entre modules & Cruse et al., p.~1436\\ \bottomrule
 \end{tabularx}
 \end{center}
-
-\attention{Pour la défense.}{L'énoncé valorise la démarche. Si la solution « un côté à la fois »
-n'a pas été votre premier essai réel, présentez-la comme une option écartée (« la solution naïve
-serait… ; elle échoue parce que… ») : c'est aussi convaincant, et c'est exact.}
 
 \bibliographystyle{unsrt}
 \bibliography{references}
