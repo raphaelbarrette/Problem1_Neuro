@@ -1,13 +1,11 @@
 % =====================================================================
 % Annexe (page 2) de l'affiche -- Probleme 1, GEI723 (Automne 2026)
-% Compilation : xelatex annexe ; bibtex annexe ; xelatex annexe ; xelatex annexe
 % Les deux pages sont reunies dans affiche_complete.pdf par affiche_complete.tex.
 % =====================================================================
 \documentclass[20pt, a0paper, portrait, margin=0mm, innermargin=24mm,
   colspace=19mm, subcolspace=0mm, blockverticalspace=6mm]{tikzposter}
 \input{style}
 
-% L'annexe a plus de place : texte plus grand que sur la page 1
 \renewcommand{\petit}{\fontsize{21pt}{28.5pt}\selectfont}
 \renewcommand{\corps}{\fontsize{22pt}{30pt}\selectfont}
 \renewcommand{\legende}[2]{\par\vspace{3mm}{\fontsize{20pt}{27pt}\selectfont\color{encre2}\textbf{#1} #2\par}\vspace{6mm}}
@@ -21,16 +19,14 @@
 
 \settitle{\begin{minipage}{\linewidth}\raggedright
   {\ttfamily\fontsize{17pt}{20pt}\selectfont\color{gris}
-  GEI723 · PROBLÈME 1 · ANNEXE (PAGE 2)\hfill RAPHAËL BARRETTE · ÉMILE [NOM]\par}
+  GEI723 · PROBLÈME 1 · ANNEXE (PAGE 2)\hfill RAPHAËL BARRETTE · ÉMILE JACQUES-TIGHE\par}
   \vspace{6mm}
   {\condensed\fontsize{60pt}{64pt}\selectfont Annexe : paramètres, justifications et expériences complémentaires\par}
   \vspace{6mm}
-  \resizebox{\linewidth}{!}{\raster{0.5}}
 \end{minipage}}
 \maketitle[width=\dimexpr\textwidth-48mm\relax, titletotopverticalspace=20mm, titletoblockverticalspace=12mm, innersep=0mm]
 
 \begin{columns}
-% ================================================================== colonne 1
 \column{0.333}
 \block{}{\raggedright%
   \titre{A1}{Paramètres de la Partie I}
