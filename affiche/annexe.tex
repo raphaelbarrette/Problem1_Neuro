@@ -60,20 +60,10 @@
   }
   \vspace{3mm}
   {\petit\color{encre2} Le biais B\_ET devient un courant lent : chaque décharge de CMD\_AV\_s ($\approx$ 100~Hz) fait $g_s \leftarrow g_s + 0{,}5\,(0{,}9 - g_s)$ sur IN\_sw\_av et IN\_st\_ar. $g_s$ oscille entre $\approx$ 0,63 et 0,76, au-dessus des 0,4 nécessaires ($0{,}6 + g_s > 1$), et retombe en $\approx$ 50~ms quand la commande s'arrête.\par}
-  \vspace{16mm}
-  \titre{A3}{Pourquoi quatre interneurones ?}
-  {\corps Sans IN, AVANT recevrait le swing (poids $w_{sw}$), le stance ($w_{st}$) et un biais $b$ qui dépend du mode. Il faudrait :\par}
   \vspace{3mm}
-  {\fontsize{22pt}{29pt}\selectfont
-  \begin{tabularx}{\linewidth}{@{}l X X@{}}
-    \toprule \textbf{Mode} & \textbf{Swing → AVANT} & \textbf{Stance → AVANT}\\ \midrule
-    avant & $w_{sw} + b_{av} > 1$ & $w_{st} + b_{av} < 1$\\
-    arrière & $w_{sw} + b_{ar} < 1$ & $w_{st} + b_{ar} > 1$\\ \bottomrule
-  \end{tabularx}\par}
-  \vspace{3mm}
-  {\corps La colonne swing impose $b_{av} > b_{ar}$, la colonne stance $b_{ar} > b_{av}$ : contradiction. AVANT calcule un XNOR (phase, mode), non linéairement séparable ; il faut une couche cachée. Chaque IN fait un ET, AVANT et ARRIÈRE font le OU de deux IN. Choisir la source d'AVANT en Python marcherait aussi, mais le mode deviendrait un recâblage au lieu d'un signal.\par}
+  {\petit\color{encre2} \textbf{Stimuli.} Un contact injecte K × intensité dans son groupe de capteurs pendant 100~ms. Face : $t_0$ = 1~s, 4~s simulées ; arrière : $t_0$ = 1~s, 3,5~s ; flancs : $t_0$ = 0,5~s, 5~s. Études paramétriques (A7) : $t_0$ = 0,2~s, capteurs, commandes et CPG seulement (sans pattes), sauf la latence ($t_0$ = 1~s, réseau complet).\par}
   \vspace{16mm}
-  \titre{A4}{Reproduire}
+  \titre{A3}{Reproduire}
   \encadre{\ttfamily\fontsize{19pt}{27pt}\selectfont
     pip install -r requirements.txt\\
     python run\_all.py \hfill\# expériences → figures/\\
@@ -84,35 +74,22 @@
 % ================================================================== colonne 2
 \column{0.333}
 \block{}{\raggedright%
-  \titre{A5}{Capteurs : l'intensité devient un nombre de décharges}
+  \titre{A4}{Capteurs : l'intensité devient un nombre de décharges}
   \includegraphics[width=\linewidth]{figures/a_recrutement}
   \legende{Fig. A1 --- Recrutement.}{Les 10 neurones ont des seuils de 0,2 à 1,8 et reçoivent 2 × intensité : un contact faible en fait décharger quelques-uns, lentement ; un contact fort en recrute plus, et plus vite.}
   \vspace{14mm}
-  \titre{A6}{Recul selon l'intensité}
+  \titre{A5}{Recul selon l'intensité}
   \includegraphics[width=\linewidth]{figures/p2_recul_intensites}
   \legende{Fig. A2 --- Plus l'impact est fort, plus le recul dure.}{Le recul (activité de CMD\_AR\_G) est nul sous 0,3 ; il dure 0,16~s à 0,3, 1,03~s à 0,6 et 1,53~s à 1,0 : le courant lent intègre l'intensité du contact.}
   \vspace{14mm}
-  \titre{A7}{Deux contacts en même temps}
-  \includegraphics[width=\linewidth]{figures/a_selection}
-  \legende{Fig. A3 --- Sélection d'action : avant > flancs > arrière.}{Trait plein : contacts simultanés ; tirets : chaque contact seul (le tiret du contact gagnant est caché sous le trait plein). Face bat flanc, le flanc le plus fort gagne, flanc bat arrière.}
-  {\fontsize{20pt}{27pt}\selectfont
-  \begin{tabularx}{\linewidth}{@{}X r r r r@{}}
-    \toprule \textbf{Conflit} & \textbf{SENS\_G} & \textbf{SENS\_D} & \textbf{SENS\_AV} & \textbf{SENS\_AR}\\ \midrule
-    AV 0,6 + D 0,6 & 0 & 1 & \textbf{73} & 0\\
-    G 0,4 + D 0,8 & 0 & \textbf{105} & 0 & 0\\
-    D 0,6 + AR 0,8 & 0 & \textbf{73} & 0 & 1\\ \bottomrule
-  \end{tabularx}\par}
-  \vspace{3mm}
-  {\petit\color{encre2} Nombre de décharges des capteurs pendant chaque conflit : le groupe prioritaire supprime presque entièrement l'autre (inhibition rapide entre capteurs).\par}
-  \vspace{16mm}
-  \titre{A10}{Bonus : habituation}
-  \includegraphics[width=\linewidth]{figures/a_habituation}
-  \legende{Fig. A7 --- Habituation.}{Avec une dépression synaptique à court terme sur SENS\_AR → CPG (U = 0,05, $\tau_{\mathrm{rec}}$ = 4~s), l'accélération diminue à chaque nouvelle poussée.}
+  \titre{A6}{Partie II à N paires}
+  \includegraphics[width=\linewidth]{figures/a_N_partie2}
+  \legende{Fig. A3 --- On ne change que N\_PAIRES.}{Contact droit à 0,5~s puis de face à 3~s : capteurs et commandes sont par côté, pas par patte, donc le même réseau de commande pilote 3, 20 ou 200 paires (N = 20 et 200 se superposent).}
 }
 % ================================================================== colonne 3
 \column{0.333}
 \block{}{\raggedright%
-  \titre{A8}{Adapter le comportement par les paramètres}
+  \titre{A7}{Adapter le comportement par les paramètres}
   \includegraphics[width=0.49\linewidth]{figures/a_sensibilite}\hfill
   \includegraphics[width=0.49\linewidth]{figures/a_persistance}\par\vspace{3mm}
   \includegraphics[width=0.49\linewidth]{figures/a_latence}\hfill
@@ -122,19 +99,17 @@
     \textbf{Fig. A4 --- Un paramètre, un comportement.} W\_AV\_AR = 0,03 → 0,08 abaisse l'intensité minimale de recul de 0,4 à 0,25. Doubler $\tau_{\mathrm{persist}}$ double la durée du recul (0,76 → 1,53 → 3,07~s à l'intensité 1). Chaque 100~ms de délai capteur ajoute $\approx$ 0,1 de distance parcourue avant de reculer. W\_LAT\_AR = 0,02 → 0,035 fait passer le seuil du pivot de 0,8 à 0,6. Des seuils resserrés (0,9 à 1,1) ne distinguent presque plus les intensités.
   \end{minipage}
   \vspace{16mm}
-  \titre{A9}{Partie II à N paires, boucle fermée}
-  \begin{minipage}[t]{0.49\linewidth}
-    \includegraphics[width=\linewidth]{figures/a_N_partie2}\par
-    {\fontsize{18pt}{24pt}\selectfont\color{encre2}\textbf{Fig. A5.} Contact droit à 0,5~s puis de face à 3~s : capteurs et commandes sont par côté, on ne change que N\_PAIRES (N = 20 et 200 se superposent).\par}
-  \end{minipage}\hfill
-  \begin{minipage}[t]{0.49\linewidth}
-    \includegraphics[width=\linewidth]{figures/p2_arene}\par
-    {\fontsize{18pt}{24pt}\selectfont\color{encre2}\textbf{Fig. A6 --- Boucle fermée.} Plus aucun contact n'est scripté : l'hexapode heurte les murs et réagit seul (9 contacts en 30~s ; ici W\_AV\_CPT = 0,12 ajoute un virage au recul).\par}
-  \end{minipage}
-  \vspace{16mm}
-  \titre{A11}{Activité du réseau lors d'un pivot}
-  \includegraphics[width=\linewidth]{figures/a_raster_pivot}
-  \legende{Fig. A8 --- Pivot puis virage.}{Le contact fort à droite active CMD\_AR\_G pendant $\approx$ 0,6~s : les pattes gauches reculent, le corps pivote. CMD\_AR inhibe le compteur pendant ce temps ; ensuite le courant lent pousse COMPTEUR\_G au seuil plusieurs fois, INHIB\_G bloque les IN gauches et le virage continue jusqu'à θ $\approx$ +122°.}
+  \titre{A8}{Pourquoi quatre interneurones ?}
+  {\corps Sans IN, AVANT recevrait le swing (poids $w_{sw}$), le stance ($w_{st}$) et un biais $b$ qui dépend du mode. Il faudrait :\par}
+  \vspace{3mm}
+  {\fontsize{22pt}{29pt}\selectfont
+  \begin{tabularx}{\linewidth}{@{}l X X@{}}
+    \toprule \textbf{Mode} & \textbf{Swing → AVANT} & \textbf{Stance → AVANT}\\ \midrule
+    avant & $w_{sw} + b_{av} > 1$ & $w_{st} + b_{av} < 1$\\
+    arrière & $w_{sw} + b_{ar} < 1$ & $w_{st} + b_{ar} > 1$\\ \bottomrule
+  \end{tabularx}\par}
+  \vspace{3mm}
+  {\corps La colonne swing impose $b_{av} > b_{ar}$, la colonne stance $b_{ar} > b_{av}$ : contradiction. AVANT calcule un XNOR (phase, mode), non linéairement séparable ; il faut une couche cachée. Chaque IN fait un ET, AVANT et ARRIÈRE font le OU de deux IN. Choisir la source d'AVANT en Python marcherait aussi, mais le mode deviendrait un recâblage au lieu d'un signal.\par}
 }
 \end{columns}
 

@@ -55,7 +55,7 @@
 \vspace{0.3em}
 {\large Problème 1 --- Locomotion hexapode par un réseau de neurones à décharges\par}
 \vspace{0.2em}
-{\color{gris} GEI723 · Automne 2026 · Raphaël Barrette, Émile [NOM] · Notes pour la défense\par}
+{\color{gris} GEI723 · Automne 2026 · Raphaël Barrette, Émile Jacques-Tighe · Notes pour la défense\par}
 \vspace{0.8em}
 \hrule
 \vspace{0.6em}
@@ -63,18 +63,6 @@
 Ce document présente notre démarche sur papier, dans l'ordre où les problèmes se posent. Chaque étape
 suit le même format : \textbf{la question}, \textbf{l'idée retenue}, \textbf{la source} (citée
 précisément) et \textbf{ce que nous avons fait} dans le réseau.
-
-% ====================================================================
-\section{Deux points à ne pas confondre}
-
-\attention{Un tripode n'est pas un côté.}{Les trois pattes d'un même côté ne se lèvent jamais
-ensemble (le corps basculerait). Un tripode mélange les deux côtés : \textbf{G1, D2, G3} contre
-\textbf{D1, G2, D3}. Les pattes au sol forment toujours un triangle d'appui, deux d'un côté, une de
-l'autre.}
-
-\vspace{0.4em}
-\attention{A et B ne s'auto-inhibent pas.}{Ils s'inhibent \emph{mutuellement} (chacun freine
-l'autre, poids W\_AB). Ce qui freine un neurone \emph{lui-même}, c'est sa fatigue, l'adaptation $a$.}
 
 % ====================================================================
 \section{La démarche, étape par étape}
@@ -234,10 +222,6 @@ ainsi de suite.
   Compteur de virage & idée : raccourcir les pas d'un côté pour tourner & Otis, p.~112 (mécanisme original)\\ \bottomrule
 \end{tabularx}
 \end{center}
-
-\attention{Pour la défense.}{L'énoncé valorise la démarche. Si la solution « un côté à la fois »
-n'a pas été votre premier essai réel, présentez-la comme une option écartée (« la solution naïve
-serait… ; elle échoue parce que… ») : c'est aussi convaincant, et c'est exact.}
 
 \bibliographystyle{unsrt}
 \bibliography{references}
