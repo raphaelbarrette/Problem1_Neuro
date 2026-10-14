@@ -73,7 +73,7 @@ def simuler(N_PAIRES=3, I_drive=2.0, mode_G='avant', mode_D='avant',
     '''Partie I : commandes fixees a la main (mode par cote, virage, I_drive).'''
     start_scope()
     n, _, s, *_ = indices(N_PAIRES, delta)
-    avant =np.where(s == 0, mode_G == 'avant', mode_D == 'avant')
+    avant = np.where(s == 0, mode_G == 'avant', mode_D == 'avant')
 
     cpg = cpg_pop(I_drive)
     cpt = pop(2, tau=100*second)              # COMPTEUR_G, COMPTEUR_D (fuite tres lente)

@@ -257,15 +257,16 @@ def fig_acceleration():
 
 
 def fig_arene():
-    R, traj, contacts = cache('p2_arene', lambda: arene(duree=30*second, W_AV_CPT=0.12))
+    taille = 8.0
+    R, traj, contacts = cache('p2_arene', lambda: arene(duree=30*second, taille=taille, W_AV_CPT=0.12))
     fig, ax = plt.subplots(figsize=(W * 0.62, W * 0.62))
-    ax.add_patch(plt.Rectangle((0, 0), 8, 8, fill=False, lw=3, ec=INK))
+    ax.add_patch(plt.Rectangle((0, 0), taille, taille, fill=False, lw=3, ec=INK))
     ax.plot(traj[:, 1], traj[:, 2], c=MUTED, lw=1.4)
     for cap in ['G', 'D', 'AV', 'AR']:
         pts = [(x, y) for (_, c, _, x, y) in contacts if c == cap]
         if pts: ax.plot(*np.array(pts).T, '*', c=COUL_CAP[cap], ms=14, mec=INK, mew=0.6, ls='none', label=f'contact {cap} ({len(pts)})')
     ax.plot(*traj[0, 1:3], 'o', c=INK, ms=7)
-    ax.set_aspect('equal'); ax.set(xlim=(-0.3, 8.3), ylim=(-0.3, 8.3)); ax.grid(False)
+    ax.set_aspect('equal'); ax.set(xlim=(-0.3, taille + 0.3), ylim=(-0.3, taille + 0.3)); ax.grid(False)
     ax.set_title('Boucle fermée : arène, 30 s')
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.04), ncol=3, fontsize=10.5, handletextpad=0.2, columnspacing=0.8)
     sauver(fig, 'p2_arene')

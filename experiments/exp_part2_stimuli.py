@@ -17,7 +17,9 @@ from plotting import COUL, afficher_scenario, demarche, sauver
 
 
 def etape1():
-    '''Sans stimulus, le biais tonique fait decharger CMD_AV_G et CMD_AV_D (~100 Hz) : marche avant.'''
+    '''Sans stimulus, le biais tonique fait decharger CMD_AV_G et CMD_AV_D (~100 Hz) ; CMD_AR_G et
+    CMD_AR_D sont silencieux. IN_sw_av / IN_st_ar recoivent le biais de mode : l'hexapode marche
+    droit devant lui, comme mode_G = mode_D = 'avant' en Partie I (meme position finale, x = 2).'''
     R = simuler_capteurs(duree=2*second)
     sauver(afficher_scenario(R, 'Sans stimulus : marche avant par defaut'), 'p2_1_defaut')
     traj = decoder(R)[0]
@@ -26,7 +28,10 @@ def etape1():
 
 
 def etape2():
-    '''Recrutement et codage de l'intensite : un contact fort recrute plus de neurones, plus vite.'''
+    '''Recrutement et codage de l'intensite. Chaque population a M = 10 neurones de seuils 0.2 a 1.8 ;
+    le courant injecte est K_SENS x intensite pendant le contact (100 ms). Un contact faible ne
+    depasse le seuil que de quelques neurones, qui dechargent lentement ; un contact fort en recrute
+    plus, et plus vite -> codage par recrutement et par frequence.'''
     I_vals = np.linspace(0, 1, 21)
     tot, rec, _ = recrutement(I_vals)
     _, _, (t, i) = recrutement([0.2, 0.5, 1.0])
@@ -43,7 +48,12 @@ def etape2():
 
 
 def etape3():
-    '''Obstacle de face -> reculer, puis reprise de la marche avant (WTA CMD_AV / CMD_AR).'''
+    '''Obstacle de face -> reculer. SENS_AV excite CMD_AR_G/D et inhibe CMD_AV_G/D (synapses lentes) :
+    les deux cotes passent en mode arriere. Quand le courant lent retombe, CMD_AV reprend le dessus
+    grace a son biais tonique (winner-take-all CMD_AV <-> CMD_AR) et la marche avant reprend.
+    A l'intensite 0.3, le gs de CMD_AR depasse a peine le seuil : l'hexapode s'arrete brievement
+    sans vraiment reculer. Au-dessus, le recul dure d'autant plus longtemps que l'impact est fort
+    (duree mesuree sur CMD_AR_G, commandes seulement : pattes=False).'''
     stim = [('AV', 1000*ms, 0.8, 100*ms)]
     R = simuler_capteurs(stim, duree=4*second)
     sauver(afficher_scenario(R, 'Obstacle de face (intensite 0.8) : recul puis reprise de la marche avant', stim),
@@ -76,7 +86,9 @@ def etape3():
 
 
 def etape4():
-    '''Heurte par derriere -> accelerer : SENS_AR augmente le drive effectif du CPG.'''
+    '''Heurte par derriere -> accelerer. SENS_AR excite A et B du CPG par une synapse lente : le drive
+    effectif I_drive + gs augmente, le CPG accelere, puis revient a la cadence de croisiere
+    (~5 Hz) quand gs decroit.'''
     stim = [('AR', 1000*ms, 0.8, 100*ms)]
     R = simuler_capteurs(stim, duree=3*second)
     sauver(afficher_scenario(R, 'Heurte par derriere (intensite 0.8) : acceleration du CPG', stim, traj=False),
@@ -99,7 +111,18 @@ def etape4():
 
 
 def etape5():
-    '''Obstacle sur un flanc -> tourner : courbe douce, virage serre ou pivot selon l'intensite.'''
+    '''Obstacle sur un flanc -> tourner (reponse graduee). SENS_D excite COMPTEUR_G, qui recoit deja
+    les salves de A et atteint donc son seuil plus souvent. Chaque decharge du compteur active
+    INHIB_G, qui bloque les IN gauches ~un cycle : les pattes gauches sautent des poussees et
+    l'hexapode tourne a gauche.
+    - contact faible (0.3) : le compteur decharge quelques fois -> leger ecart (~20 deg) ;
+    - contact moyen (0.6) : le compteur decharge au moins une fois par cycle pendant ~1 s, les IN
+      gauches restent bloques -> virage serre (~75 deg) ;
+    - contact fort (1.0) : la voie a poids faible SENS_D -> CMD_AR_G vainc l'inhibition WTA de
+      CMD_AV_G ; le cote gauche passe en mode arriere -> pivot, puis virage (~120 deg).
+      CMD_AR_G inhibe aussi COMPTEUR_G (ajout de notre part) : sinon le compteur bloquerait les
+      pattes gauches et empecherait le pivot.
+    Flanc gauche -> tourner a droite : meme mecanisme en symetrique (SENS_G -> COMPTEUR_D, CMD_AR_D).'''
     res_virage = {inten: simuler_capteurs([('D', 500*ms, inten, 100*ms)], duree=5*second) for inten in [0.3, 0.6, 1.0]}
 
     fig, ax = plt.subplots(3, 2, figsize=(15, 8), gridspec_kw={'width_ratios': [2.2, 1]})
@@ -139,7 +162,12 @@ def etape5():
 
 
 def etape6():
-    '''Selection d'action (stimuli simultanes) : AVANT > FLANCS > ARRIERE.'''
+    '''Selection d'action (stimuli simultanes) : AVANT > FLANCS > ARRIERE, par inhibition rapide entre
+    capteurs. SENS_AV inhibe SENS_G, SENS_D, SENS_AR ; SENS_G et SENS_D inhibent SENS_AR ;
+    SENS_G <-> SENS_D (le plus fort l'emporte). Trois conflits :
+    1. obstacle devant et a droite -> on recule, sans virage ;
+    2. contact a gauche (0.4) et a droite (0.8) -> le cote le plus fort gagne : virage a gauche ;
+    3. contact a droite et poussee arriere -> on tourne, sans accelerer.'''
     conflits = {
         'AV 0.6 + D 0.6':  [('AV', 500*ms, 0.6, 100*ms), ('D', 500*ms, 0.6, 100*ms)],
         'G 0.4 + D 0.8':   [('G', 500*ms, 0.4, 100*ms), ('D', 500*ms, 0.8, 100*ms)],
@@ -147,11 +175,13 @@ def etape6():
     }
     seuls = {'AV 0.6': [('AV', 500*ms, 0.6, 100*ms)], 'D 0.6': [('D', 500*ms, 0.6, 100*ms)],
              'G 0.4': [('G', 500*ms, 0.4, 100*ms)], 'D 0.8': [('D', 500*ms, 0.8, 100*ms)], 'AR 0.8': [('AR', 500*ms, 0.8, 100*ms)]}
+    # pic de frequence apres le contact (t > 500 ms) : avant, le demarrage du CPG donne ~7 Hz partout
     print(f"{'scenario':<16}" + ''.join(f'{"SENS_" + c:>9}' for c in CAPTEURS) + '   pic freq (Hz)')
     fig, ax = plt.subplots(1, 3, figsize=(15, 4.5))
     for a, (nom, stim) in zip(ax, conflits.items()):
         Rc = simuler_capteurs(stim, duree=3.5*second)
-        print(f'{nom:<16}' + ''.join(f"{len(Rc['S_' + c][0]):>9}" for c in CAPTEURS) + f'   {freq_pas(Rc)[1].max():.1f}')
+        t, f = freq_pas(Rc)
+        print(f'{nom:<16}' + ''.join(f"{len(Rc['S_' + c][0]):>9}" for c in CAPTEURS) + f'   {f[t > 500].max():.1f}')
         traj = decoder(Rc)[0]
         a.plot(traj[:, 1], traj[:, 2], 'k', lw=2.5, label=f'simultanes : {nom}')
         for part in nom.split(' + '):
@@ -163,7 +193,16 @@ def etape6():
 
 
 def etape7_sensibilite():
-    '''7.1 Sensibilite (poids SENS_AV -> CMD) : reaction = CMD_AR_G decharge.'''
+    '''7.1 Sensibilite (poids SENS_AV -> CMD) : reaction = CMD_AR_G decharge. W_AV_AV est change
+    dans la meme proportion.
+
+    Parametres modifies a l'etape 7 et comportement adapte :
+        W_AV_AR (sensoriel -> commande)      sensibilite : intensite minimale pour reagir
+        TAU_PERSIST                          duree de la reaction
+        DELAI_SENS (capteur -> commande)     temps de reaction (latence)
+        W_LAT_AR (SENS_D -> CMD_AR_G)        seuil de passage virage -> rotation
+        SEUIL_MIN, SEUIL_MAX (capteurs)      plage d'intensites discriminees
+    (La cadence de base depend de I_drive, voir exp_speed en Partie I.)'''
     I_vals = np.round(np.linspace(0.05, 0.5, 10), 3)
     fig = plt.figure(figsize=(6, 3.5))
     for w in [0.03, 0.05, 0.08]:
@@ -211,7 +250,7 @@ def etape7_latence():
 
 
 def etape7_pivot():
-    '''7.4 Seuil de passage virage -> rotation (poids faible SENS_D -> CMD_AR_G).'''
+    '''7.4 Seuil de passage virage -> rotation (poids faible SENS_D -> CMD_AR_G) : pivot = CMD_AR_G decharge.'''
     I_vals = np.round(np.linspace(0.3, 1.0, 8), 2)
     fig = plt.figure(figsize=(6, 3.5))
     for w in [0.02, 0.025, 0.035]:
@@ -227,7 +266,8 @@ def etape7_pivot():
 
 
 def etape7_seuils():
-    '''7.5 Seuils des neurones sensoriels -> plage d'intensites discriminees.'''
+    '''7.5 Seuils des neurones sensoriels -> plage d'intensites discriminees. Des seuils resserres
+    donnent une reponse en tout-ou-rien ; des seuils etales discriminent une large plage.'''
     I_vals = np.linspace(0, 1.5, 31)
     fig = plt.figure(figsize=(6, 3.5))
     for smin, smax in [(0.9, 1.1), (0.2, 1.8), (0.2, 3.0)]:
@@ -246,7 +286,9 @@ def etape7():
 
 
 def etape8():
-    '''Generalisation a N paires : capteurs et commandes sont par cote, on change seulement N_PAIRES.'''
+    '''Generalisation a N paires : capteurs et commandes sont par cote, on change seulement N_PAIRES.
+    Meme scenario (flanc droit 0.6 a t = 0.5 s, puis obstacle devant 0.8 a t = 3 s) pour N = 3, 20
+    et 200. Chaque patte porte d / N_PAIRES, donc les trajectoires doivent etre comparables.'''
     scenario = [('D', 500*ms, 0.6, 100*ms), ('AV', 3000*ms, 0.8, 100*ms)]
     res_N = {N: simuler_capteurs(scenario, N_PAIRES=N, delta=dl, duree=5*second)
              for N, dl in [(3, 0*ms), (20, 5*ms), (200, 0.5*ms)]}
@@ -272,7 +314,10 @@ def etape8():
 
 
 def etape9_habituation():
-    '''Bonus : depression a court terme SENS_AR -> CPG, l'acceleration diminue a chaque poussee.'''
+    '''Bonus : habituation par depression a court terme SENS_AR -> CPG. Chaque decharge consomme une
+    fraction U_STD de la ressource x de la synapse, qui se reconstitue avec TAU_REC = 4 s. Pousse
+    plusieurs fois de suite, l'hexapode accelere de moins en moins (pic ~7.8 Hz -> ~6.2 Hz en
+    5 poussees, pas strictement monotone ; ~9 Hz a chaque fois sans habituation).'''
     pousses = [('AR', t0 * ms, 0.8, 100*ms) for t0 in [500, 2000, 3500, 5000, 6500]]
     fig, ax = plt.subplots(1, 2, figsize=(14, 3.5), gridspec_kw={'width_ratios': [2.5, 1]})
     for hab, lab in [(False, 'sans habituation'), (True, 'avec habituation')]:
@@ -290,16 +335,17 @@ def etape9_habituation():
 
 def etape9_arene():
     '''Bonus : boucle fermee dans une arene, l'hexapode explore son environnement tout seul.'''
-    R, traj, contacts = arene(duree=30*second, W_AV_CPT=0.12)
+    taille = 8.0
+    R, traj, contacts = arene(duree=30*second, taille=taille, W_AV_CPT=0.12)
     fig, ax = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [1, 1.4]})
-    ax[0].add_patch(plt.Rectangle((0, 0), 8, 8, fill=False, lw=3))
+    ax[0].add_patch(plt.Rectangle((0, 0), taille, taille, fill=False, lw=3))
     ax[0].plot(traj[:, 1], traj[:, 2], c='0.75', lw=1)
     sc = ax[0].scatter(traj[:, 1], traj[:, 2], c=traj[:, 0] / 1000, s=5, cmap='viridis')
     for cap in CAPTEURS:
         pts = [(x, y) for (_, c, _, x, y) in contacts if c == cap]
         if pts: ax[0].plot(*np.array(pts).T, '*', c=COUL[cap], ms=13, mec='k', label=f'contact_{cap} ({len(pts)})')
     ax[0].plot(*traj[0, 1:3], 'ko'); ax[0].set_aspect('equal'); ax[0].legend(fontsize=8, loc='upper right')
-    ax[0].set(xlim=(-0.3, 8.3), ylim=(-0.3, 8.3), title='Exploration autonome (30 s)')
+    ax[0].set(xlim=(-0.3, taille + 0.3), ylim=(-0.3, taille + 0.3), title='Exploration autonome (30 s)')
     fig.colorbar(sc, ax=ax[0], label='temps (s)', shrink=0.7)
     for c, cap in enumerate(CAPTEURS):
         t, i = R['S_' + cap]; ax[1].plot(t / 1000, i + c * R['M'], '|', c=COUL[cap], ms=3)

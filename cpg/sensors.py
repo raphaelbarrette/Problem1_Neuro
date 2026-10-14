@@ -12,6 +12,32 @@ sont remplacees par des neurones de commande pilotes par des neurones sensoriels
     Reseau de la Partie I : CPG -> interneurones de direction -> motoneurones des pattes
 
 Un stimulus est un tuple (capteur, t0, intensite, duree).
+
+Modele : meme LIF qu'en Partie I, avec deux ajouts (voir config.eqs) :
+- gs : courant synaptique lent (signe) qui decroit avec tau_s. Une synapse lente fait gs += w
+  (excitatrice) ou gs -= w (inhibitrice). C'est le mecanisme de persistance : un contact de
+  100 ms produit une reaction qui dure ~tau_persist.
+- seuil : seuil de decharge propre a chaque neurone (1 partout, sauf chez les capteurs ou il
+  va de SEUIL_MIN a SEUIL_MAX -> codage de l'intensite par recrutement et par frequence).
+
+Biais de mode (CMD -> interneurones). En Partie I, le biais B_ET = 0.6 des IN etait fixe a la
+main. Ici chaque decharge du neurone de commande ajoute du courant lent sur les IN de son cote,
+par une synapse saturante gs += W_MODE (G_MODE - gs), qui decroit avec TAU_MODE = 50 ms. En
+regime periodique, gs oscille entre ~0.45 et ~0.85 pour une commande de 50 a 300 Hz (~0.62 a
+0.76 a 100 Hz, la frequence de CMD_AV au repos). Il faut > 0.4 pour que le ET (CPG, W_ET = 0.6,
++ biais) franchisse le seuil, et < 1 pour que l'IN ne decharge pas seul.
+
+Compteur. En Partie I, c'etait un integrateur parfait (fuite 100 s) qui ne recevait le CPG que
+si le virage etait active. Ici il recoit toujours les salves de A (W_CPT = 0.35) mais fuit
+(TAU_CPT = 150 ms) : avec un cycle de ~195 ms a I_drive = 2, son pic plafonne a ~0.48, donc le
+CPG seul ne le fait jamais decharger. Le courant sensoriel lent s'ajoute et le compteur atteint
+son seuil plus souvent quand le contact est fort.
+
+Persistance. Chaque decharge sensorielle ajoute w au gs du neurone de commande, qui decroit avec
+TAU_PERSIST = 800 ms (le plan suggerait 500 ms ; 800 ms allonge les reactions, voir l'etape
+7.2). Le pic de gs est proportionnel au nombre de decharges, et la reaction dure tant que gs
+reste au-dessus du seuil : t ~ TAU_PERSIST ln(g_pic / g_seuil). Plus le contact est fort, plus
+la reaction monte haut et dure longtemps.
 '''
 import numpy as np
 from brian2 import (Network, SpikeMonitor, StateMonitor, TimedArray, ms, network_operation,
@@ -26,7 +52,11 @@ def simuler_capteurs(stimuli=(), N_PAIRES=3, I_drive=2.0, duree=2*second, delta=
                      extra=None, **p):
     '''stimuli : liste de (capteur, t0, intensite, duree), ou None si le courant sensoriel est
     impose de l'exterieur (boucle fermee). pattes=False construit seulement capteurs + commandes
-    + CPG + compteurs (plus rapide). p : remplace des valeurs de PARAM.'''
+    + CPG + compteurs (plus rapide). p : remplace des valeurs de PARAM.
+
+    4 neurones de commande, indice 2s + ar : 0 = CMD_AV_G, 1 = CMD_AR_G, 2 = CMD_AV_D,
+    3 = CMD_AR_D. CMD_AV a un biais tonique (I_CMD, ~100 Hz) -> marche avant par defaut.
+    Capteurs et commandes sont par cote, pas par patte : on change toujours seulement N_PAIRES.'''
     P_ = PARAM | p
     start_scope()
     M = P_['M']
@@ -89,6 +119,7 @@ def simuler_capteurs(stimuli=(), N_PAIRES=3, I_drive=2.0, duree=2*second, delta=
     if pattes:
         P, S_p = construire_pattes(cpg, inh, N_PAIRES, delta)
         S += S_p
+        for nom in NOMS[4:]: P[nom].tau_s = P_['TAU_MODE']     # decroissance du biais de mode
         for nom in ['IN_sw_av', 'IN_st_ar']: P[nom].gs = 0.7   # depart en regime de marche avant
         # NOUVEAU : le biais de mode vient des neurones de commande (remplace mode_G / mode_D)
         for nom, ar in [('IN_sw_av', 0), ('IN_st_ar', 0), ('IN_sw_ar', 1), ('IN_st_av', 1)]:
@@ -119,7 +150,16 @@ def recrutement(intensites, seuil_min=PARAM['SEUIL_MIN'], seuil_max=PARAM['SEUIL
 
 def arene(duree=20*second, taille=8.0, rayon=0.5, depart=(4.0, 4.0, 0.4), N_PAIRES=3, **p):
     '''Boucle fermee : un network_operation lit les decharges motrices toutes les 10 ms, met a
-    jour la position (decodeur en ligne) et injecte un contact quand le corps touche un mur.
+    jour la position (decodeur en ligne) et injecte un contact quand le corps (cercle de rayon
+    `rayon`) touche un mur. Personne ne fixe les stimuli : l'hexapode explore tout seul.
+    - L'angle phi du mur par rapport au cap choisit le capteur : |phi| < 45 deg -> avant ;
+      45 a 135 deg -> flanc gauche ; -135 a -45 deg -> flanc droit ; sinon arriere.
+    - Intensite = composante normale de l'impact, max(0.3, |cos phi|) : un mur de face donne un
+      contact fort, un mur frole un contact faible.
+    - Le courant K_SENS x intensite est injecte 100 ms, puis le capteur est refractaire 400 ms.
+    - Avec W_AV_CPT > 0 (0.12 dans les experiences), SENS_AV excite aussi COMPTEUR_G :
+      l'hexapode recule en tournant au lieu de repartir droit vers le meme mur (dans l'essai
+      de 30 s, il lui faut quand meme deux reculs pour quitter le premier mur).
     Renvoie R, la trajectoire et la liste des contacts (t, capteur, intensite, x, y).'''
     P_ = PARAM | p
     journal = {'contacts': []}

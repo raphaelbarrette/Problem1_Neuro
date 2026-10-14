@@ -1,6 +1,7 @@
 '''Partie I, 1.3.5 et 1.3.6 : rotation sur place et deplacement en cercle.
 
-Rotation : mode_G = avant, mode_D = arriere -> v_G = -v_D, donc v = 0 et le corps tourne.
+Rotation : mode_G = avant, mode_D = arriere -> v_G = -v_D, donc v = 0 et le corps tourne
+(vers la droite, theta = -4 rad en 2 s).
 Cercle : virage_D actif, COMPTEUR_D decharge une salve de A sur n_saut, INHIB_D bloque les
 interneurones de direction droits pendant ~un cycle. Rayon theorique R = (L/2)(2n - 1),
 rayon mesure = distance parcourue / |angle total|.
