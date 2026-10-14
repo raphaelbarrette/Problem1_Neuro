@@ -1,1 +1,4 @@
 /.venv/*
+/figures/
+__pycache__/
+cache_affiche/

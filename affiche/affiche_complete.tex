@@ -1,0 +1,9 @@
+% Reunit l'affiche (page 1) et l'annexe (page 2) en un seul PDF pour la remise.
+% Compiler affiche.tex et annexe.tex d'abord (./build.sh le fait).
+\documentclass{article}
+\usepackage[a0paper, margin=0mm]{geometry}
+\usepackage{pdfpages}
+\begin{document}
+\includepdf[pages=1]{affiche.pdf}
+\includepdf[pages=1]{annexe.pdf}
+\end{document}

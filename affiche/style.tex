@@ -1,0 +1,112 @@
+% =====================================================================
+% Style commun de l'affiche et de l'annexe (tikzposter, A0 portrait).
+% Compiler avec XeLaTeX (ou LuaLaTeX) : les polices IBM Plex sont dans fonts/.
+% =====================================================================
+\usepackage{fontspec}
+\usepackage{polyglossia}
+\setdefaultlanguage{french}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usetikzlibrary{arrows.meta}
+
+% ---------------------------------------------------------------- polices
+\setmainfont{IBMPlexSans}[Path=fonts/, Extension=.ttf, UprightFont=*-Regular,
+  BoldFont=*-SemiBold, ItalicFont=*-Italic]
+\setsansfont{IBMPlexSans}[Path=fonts/, Extension=.ttf, UprightFont=*-Regular,
+  BoldFont=*-SemiBold, ItalicFont=*-Italic]
+\setmonofont{IBMPlexMono}[Path=fonts/, Extension=.ttf, UprightFont=*-Regular,
+  BoldFont=*-SemiBold]
+\newfontfamily\condensed{IBMPlexSansCondensed}[Path=fonts/, Extension=.ttf,
+  UprightFont=*-Bold, BoldFont=*-Bold]
+\newfontfamily\plexbold{IBMPlexSans}[Path=fonts/, Extension=.ttf, UprightFont=*-Bold]
+
+% ---------------------------------------------------------------- couleurs
+\definecolor{encre}{HTML}{16161A}
+\definecolor{encre2}{HTML}{2C2C33}
+\definecolor{gris}{HTML}{4A4A52}
+\definecolor{filet}{HTML}{D9D6CE}
+\definecolor{fond}{HTML}{FBFAF7}
+\definecolor{carton}{HTML}{FFFFFF}
+\definecolor{bordure}{HTML}{E4E2DC}
+\definecolor{bleu}{HTML}{2A78D6}
+\definecolor{orange}{HTML}{EB6834}
+\definecolor{excit}{HTML}{3A3A42}
+\definecolor{inhib}{HTML}{C2410C}
+\definecolor{ambre}{HTML}{8A6D00}
+
+% ---------------------------------------------------------------- theme tikzposter
+\definecolorstyle{Affiche}{}{%
+  \colorlet{backgroundcolor}{fond}
+  \colorlet{framecolor}{fond}
+  \colorlet{titlefgcolor}{encre}
+  \colorlet{titlebgcolor}{fond}
+  \colorlet{blocktitlebgcolor}{fond}
+  \colorlet{blocktitlefgcolor}{encre}
+  \colorlet{blockbodybgcolor}{fond}
+  \colorlet{blockbodyfgcolor}{encre}
+  \colorlet{innerblocktitlebgcolor}{fond}
+  \colorlet{innerblocktitlefgcolor}{encre}
+  \colorlet{innerblockbodybgcolor}{fond}
+  \colorlet{innerblockbodyfgcolor}{encre}
+  \colorlet{notefgcolor}{encre}
+  \colorlet{notebgcolor}{carton}
+  \colorlet{notefrcolor}{bordure}
+}
+\tikzposterlatexaffectionproofoff
+\usecolorstyle{Affiche}
+\usebackgroundstyle{Empty}
+\usetitlestyle{Empty}
+\useblockstyle{Minimal}
+\defineblockstyle{Affiche}{titlewidthscale=1, bodywidthscale=1, titleleft,
+  titleoffsetx=0pt, titleoffsety=0pt, bodyoffsetx=0pt, bodyoffsety=0pt,
+  bodyverticalshift=0pt, roundedcorners=0, linewidth=0pt,
+  titleinnersep=0mm, bodyinnersep=0mm}{}
+\useblockstyle{Affiche}
+
+% ---------------------------------------------------------------- commandes
+% Titre de section numerote : \titre{01}{Contexte et objectifs}
+\newcommand{\titre}[2]{{\condensed\fontsize{36pt}{40pt}\selectfont
+  {\ttfamily\bfseries\color{bleu}#1}\hspace{0.5em}#2}\par\vspace{3mm}}
+% Bandeau de partie, pleine largeur
+\newcommand{\bandeau}[1]{\noindent{\ttfamily\bfseries\fontsize{20pt}{24pt}\selectfont\addfontfeature{LetterSpace=8}#1}%
+  \hspace{1em}\leaders\hrule height 1.2mm\hfill\null}
+% Legende de figure : \legende{Fig. 1 --- Titre.}{Texte}
+\newcommand{\legende}[2]{\par\vspace{2mm}{\fontsize{17pt}{23pt}\selectfont\color{encre2}\textbf{#1} #2\par}\vspace{4mm}}
+% Numero de piece cercle
+\newcommand{\num}[1]{\tikz[baseline=(n.base)]\node[circle, draw=encre, line width=0.4mm, inner sep=0.6mm, font=\fontsize{13pt}{13pt}\selectfont\bfseries] (n) {#1};\ }
+% Encadre blanc
+\newcommand{\encadre}[1]{\noindent\colorbox{carton}{\fcolorbox{bordure}{carton}{\parbox{\dimexpr\linewidth-2\fboxsep-1.6pt-2\fboxrule\relax}{\raggedright #1}}}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\petit}{\fontsize{18pt}{24.5pt}\selectfont}
+\newcommand{\corps}{\fontsize{19.5pt}{27pt}\selectfont}
+\setlength{\fboxsep}{5mm}
+\setlength{\fboxrule}{0.6mm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3mm}
+\setlist{nosep, leftmargin=0pt, labelsep=0pt, itemsep=3mm}
+\renewcommand{\arraystretch}{1.25}
+\setlength{\heavyrulewidth}{0.6mm}
+\setlength{\lightrulewidth}{0.3mm}
+
+% Schemas TikZ
+\tikzset{
+  carte/.style={rectangle, rounded corners=1.6mm, line width=0.6mm, align=center, inner sep=1mm},
+  pill/.style={rounded corners=8mm},
+  etiq/.style={inner sep=0pt, text=gris},
+  excitl/.style={draw=excit, line width=0.8mm},
+  inhibit/.style={draw=inhib, line width=0.8mm},
+  bande/.style={draw=bordure!80!gris, dash pattern=on 3mm off 2.5mm, line width=0.6mm, rounded corners=5mm, fill=bordure!35!fond},
+}
+
+% Motif raster du CPG (une barre bleue, une orange, periode 197 ms)
+\newcommand{\raster}[1]{%
+  \begin{tikzpicture}
+    \foreach \i in {0,...,15} {
+      \fill[bleu, rounded corners=0.4mm] (\i*5.2,0) rectangle ++(0.19,#1);
+      \fill[orange, rounded corners=0.4mm] (\i*5.2+2.6,0) rectangle ++(0.19,#1);
+    }
+  \end{tikzpicture}}

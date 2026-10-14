@@ -1,0 +1,25 @@
+\definecolor{c14805A}{HTML}{14805A}\definecolor{c2A78D6}{HTML}{2A78D6}\definecolor{c6250D6}{HTML}{6250D6}\definecolor{cB9B5AA}{HTML}{B9B5AA}\definecolor{cE1F5EC}{HTML}{E1F5EC}\definecolor{cE3EEFB}{HTML}{E3EEFB}\definecolor{cEB6834}{HTML}{EB6834}\definecolor{cEBE8FB}{HTML}{EBE8FB}\definecolor{cFDE8DF}{HTML}{FDE8DF}\definecolor{cFFFFFF}{HTML}{FFFFFF}
+\begin{tikzpicture}[x=0.02646cm, y=-0.02646cm]
+\useasboundingbox (0,0) rectangle (942,470);
+\draw[bande] (700,24) rectangle (942,464);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (224,84) -- (340,84);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (224,236) -- (340,236);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (224,316) -- (340,316);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (224,416) -- (340,416);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (600,84) -- (716,84);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (600,276) -- (716,276);
+\draw[excitl,-{Triangle[length=3.2mm,width=2.6mm]}] (600,416) -- (716,416);
+\draw[inhibit,-{Circle[length=2.6mm]}] (470,144) -- (470,199);
+\node[carte, fill=cE1F5EC, draw=c14805A, minimum width=5.29cm, minimum height=1.91cm, text width=4.76cm, font=\fontsize{17pt}{20pt}\selectfont] at (124.0,84.0) {\textbf{SENS\_AV}\\{\fontsize{14pt}{16pt}\selectfont contact de face}};
+\node[carte, fill=cE3EEFB, draw=c2A78D6, minimum width=5.29cm, minimum height=1.91cm, text width=4.76cm, font=\fontsize{17pt}{20pt}\selectfont] at (124.0,236.0) {\textbf{SENS\_G}\\{\fontsize{14pt}{16pt}\selectfont flanc gauche}};
+\node[carte, fill=cFDE8DF, draw=cEB6834, minimum width=5.29cm, minimum height=1.91cm, text width=4.76cm, font=\fontsize{17pt}{20pt}\selectfont] at (124.0,316.0) {\textbf{SENS\_D}\\{\fontsize{14pt}{16pt}\selectfont flanc droit}};
+\node[carte, fill=cEBE8FB, draw=c6250D6, minimum width=5.29cm, minimum height=1.91cm, text width=4.76cm, font=\fontsize{17pt}{20pt}\selectfont] at (124.0,416.0) {\textbf{SENS\_AR}\\{\fontsize{14pt}{16pt}\selectfont heurté derrière}};
+\node[carte, fill=cFFFFFF, draw=cB9B5AA, minimum width=6.88cm, minimum height=3.18cm, text width=6.35cm, font=\fontsize{16pt}{19pt}\selectfont] at (470.0,84.0) {\textbf{CMD\_AV\_s $\dashv\vdash$ CMD\_AR\_s}\\{\fontsize{14pt}{16pt}\selectfont biais I\_CMD = 1,8 :\\marche avant par défaut}};
+\node[carte, fill=cFFFFFF, draw=cB9B5AA, minimum width=6.88cm, minimum height=4.02cm, text width=6.35cm, font=\fontsize{16pt}{19pt}\selectfont] at (470.0,276.0) {\textbf{COMPTEUR\_G / \_D}\\{\fontsize{14pt}{16pt}\selectfont fuite 150 ms ; atteint\\le seuil seulement si\\un flanc est touché}};
+\node[carte, fill=cFFFFFF, draw=cB9B5AA, minimum width=6.88cm, minimum height=1.91cm, text width=6.35cm, font=\fontsize{17pt}{20pt}\selectfont] at (470.0,416.0) {\textbf{CPG (A, B)}};
+\node[carte, fill=cFFFFFF, draw=cB9B5AA, minimum width=5.56cm, minimum height=10.80cm, text width=5.03cm, font=\fontsize{17pt}{20pt}\selectfont] at (821.0,244.0) {\textbf{Réseau de la Partie I}\\[2mm]{\fontsize{15pt}{17pt}\selectfont biais des IN\\(mode avant / arrière)\\[2mm]INHIB\_s : saute\\1 pas sur n\\[2mm]rythme du CPG\\[2mm]$\rightarrow$ pattes}};
+\node[etiq, anchor=north, align=center, text width=2.96cm, font=\fontsize{14pt}{16pt}\selectfont] at (282.0,94.0) {lente\\800 ms};
+\node[etiq, anchor=north, align=center, text width=2.96cm, font=\fontsize{14pt}{16pt}\selectfont] at (282.0,248.0) {croisé};
+\node[etiq, anchor=north, align=center, text width=2.96cm, font=\fontsize{14pt}{16pt}\selectfont] at (282.0,428.0) {lente};
+\node[etiq, anchor=north west, align=left, text width=2.91cm, font=\fontsize{14pt}{16pt}\selectfont] at (484.0,156.0) {AR $\dashv$};
+\end{tikzpicture}

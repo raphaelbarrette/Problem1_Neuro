@@ -1,0 +1,199 @@
+% =====================================================================
+% Affiche -- Probleme 1, GEI723 (Automne 2026) : locomotion hexapode
+% Compilation : xelatex affiche ; bibtex affiche ; xelatex affiche ; xelatex affiche
+%   (ou latexmk -xelatex affiche.tex ; sur Overleaf : compilateur XeLaTeX)
+% Figures : figures/*.pdf, produites par Code/poster_figs.py et Code/annexe_figs.py
+% =====================================================================
+\documentclass[20pt, a0paper, portrait, margin=0mm, innermargin=24mm,
+  colspace=19mm, subcolspace=0mm, blockverticalspace=6mm]{tikzposter}
+\input{style}
+
+\begin{document}
+
+% ------------------------------------------------------------------ en-tete
+\settitle{\begin{minipage}{\linewidth}\raggedright%
+  {\ttfamily\fontsize{17pt}{20pt}\selectfont\color{gris}
+  GEI723 — NEUROSCIENCES COMPUTATIONNELLES · PROBLÈME 1 · AUTOMNE 2026\hfill
+  UNIVERSITÉ DE SHERBROOKE · DÉP. DE GÉNIE ÉLECTRIQUE ET GÉNIE INFORMATIQUE\par}
+  \vspace{6mm}
+  {\condensed\fontsize{78pt}{82pt}\selectfont Locomotion hexapode par un réseau de neurones à décharges\par}
+  \vspace{5mm}
+  {\fontsize{25pt}{31pt}\selectfont\color{encre2} Un métronome de deux neurones, des interrupteurs « ET » et des capteurs : de la marche commandée à la marche pseudo-autonome\par}
+  \vspace{6mm}
+  {\fontsize{27pt}{32pt}\selectfont\bfseries Raphaël Barrette · Émile [NOM]}\hfill
+  \parbox[b]{0.55\linewidth}{\raggedleft\itshape\fontsize{16pt}{20pt}\selectfont\color{gris}
+  Nous attestons que nous sommes les auteurs du présent travail et que tout ce qui a été emprunté est attribué à sa source et proprement cité.}\par
+  \vspace{6mm}
+  \resizebox{\linewidth}{!}{\raster{0.7}}
+
+\end{minipage}}
+\maketitle[width=\dimexpr\textwidth-48mm\relax, titletotopverticalspace=20mm, titletoblockverticalspace=12mm, innersep=0mm]
+
+% ------------------------------------------------------------------ bande A
+\begin{columns}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{01}{Contexte et objectifs}
+  {\fontsize{18.5pt}{26pt}\selectfont Chez l'animal, un réseau de la moelle épinière, le \textbf{générateur central de rythme (CPG)}, produit seul l'alternance des pas : les centres supérieurs ne fixent que la vitesse et la direction, et les perceptions modifient ce rythme sans le remplacer \cite{otis2004}. Nous appliquons ce principe à un hexapode : des neurones à décharges codent les \textbf{instants} où chaque commande de patte est émise.\par}
+  \vspace{6mm}
+  \begin{minipage}[t]{0.485\linewidth}\encadre{\petit\textbf{Partie I · commandes à la main}\par\vspace{2mm}
+    Ligne droite · marche avant · marche arrière · variation de vitesse · rotation sur place · cercle · 20 à 200 paires de pattes}\end{minipage}\hfill
+  \begin{minipage}[t]{0.485\linewidth}\encadre{\petit\textbf{Partie II · pseudo-autonome}\par\vspace{2mm}
+    Flanc droit → tourner à gauche · flanc gauche → à droite · face → reculer · heurté derrière → accélérer · comportements réglables · 20 à 200 paires}\end{minipage}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{02}{Un seul modèle de neurone}
+  \encadre{%
+    {\fontsize{24pt}{30pt}\selectfont $\displaystyle \tau\frac{dv}{dt} = I + I_b + g_s - v - a - g_i$\par}
+    \vspace{2mm}
+    {\fontsize{19pt}{26pt}\selectfont $\tau_a\dot a = -a \qquad \tau_i\dot g_i = -g_i \qquad \tau_s\dot g_s = -g_s$\par
+    $v >$ seuil (1) $\Rightarrow$ $v \leftarrow 0$, $a \leftarrow a + \mathrm{inc}_a$ ; réfractaire 2~ms\par}}
+  \vspace{5mm}
+  {\petit
+  \begin{tabular}{@{}>{\ttfamily\bfseries}l p{0.83\linewidth}@{}}
+    I & entrée : I\_drive du CPG, ou K × intensité pour un capteur\\
+    I$_b$ & biais tonique : mode avant/arrière, commande par défaut\\
+    a & adaptation (fatigue) : CPG seulement\\
+    g$_i$, g$_s$ & inhibition rapide ; courant lent (persistance, Partie II)\\
+  \end{tabular}\par\vspace{3mm}
+  Synapse excitatrice : $v \mathrel{+}= w$ (instantanée) · inhibitrice : $g_i \mathrel{+}= w$ · lente : $g_s \pm w$. Toutes les populations partagent ce modèle ; seuls les paramètres et les connexions changent.\par}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{03}{Conditions expérimentales}
+  {\petit Brian2 2.10.1 \cite{stimberg2019}, cible numpy, Euler, d$t$ = 0,1~ms. Par défaut : $N$ = 3 paires, I\_drive = 2, 2~s simulées (cercles : 8~s). \textbf{Décodage hors réseau} : une patte est au sol entre POSER et LEVER ; un passage AVANT → ARRIÈRE au sol est une poussée qui fait avancer son côté de $d/N$ ($d$ = 0,2). $v = (v_G + v_D)/2$, $\omega = (v_D - v_G)/L$, $L$ = 1.\par
+  \vspace{4mm}
+  \begin{tabularx}{\linewidth}{@{}X l@{}}
+    \toprule
+    \textbf{Tâche (Partie I)} & \textbf{Seul réglage modifié}\\ \midrule
+    Avant / arrière, ligne droite & \code{mode\_G = mode\_D}\\
+    Vitesse & \code{I\_drive}\\
+    Rotation sur place & \code{G avant, D arrière}\\
+    Cercle & \code{virage\_D, n\_saut = n}\\
+    20 à 200 paires & \code{N\_PAIRES (+ délai k}$\Delta$\code{)}\\ \bottomrule
+  \end{tabularx}\par
+  \vspace{3mm}{\color{gris}Reproduire toutes les figures : \code{python run\_all.py}}\par}
+}
+\end{columns}
+
+% ------------------------------------------------------------------ Partie I
+\block{}{\bandeau{PARTIE I — SYSTÈME NON AUTONOME}}
+
+\begin{columns}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{04}{Le réseau : cinq pièces}
+  \resizebox{\linewidth}{!}{\input{schema_partie1}}\par
+  \vspace{3mm}
+  {\fontsize{16pt}{20pt}\selectfont\color{gris}{\color{excit}\textbf{→}} excitatrice ($v \mathrel{+}= w$)\quad
+  {\color{inhib}\textbf{—•}} inhibitrice ($g_i \mathrel{+}= w$)\quad {\color{ambre}IN = interneurone « ET »}\par}
+  \vspace{5mm}
+  {\fontsize{17.5pt}{23.5pt}\selectfont
+  \begin{itemize}[label={}]
+    \item \textbf{\num{1}Métronome (CPG).} Après chaque décharge, $a$ saute de 1,5 : un neurone ne peut pas décharger deux fois de suite, et sa récupération ($\tau_a$ = 200~ms) fixe la durée du cycle. L'inhibition mutuelle (W\_AB = 4) garde A et B en antiphase \cite[fig.~5.1]{otis2004}.
+    \item \textbf{\num{2}Deux tripodes.} groupe$(k, s) = (k + s) \bmod 2$ : le groupe 0 balance sur A, le groupe 1 sur B ; la même règle vaut pour tout $N$ \cite[fig.~5.2]{otis2004}.
+    \item \textbf{\num{3}Quatre motoneurones par patte.} LEVER et POSER reçoivent le CPG directement (W\_MOT = 1,5 > 1) ; les paires antagonistes s'inhibent (W\_CONTRA = 3) \cite[fig.~2]{beer1992}.
+    \item \textbf{\num{4}Interneurones « ET » (original).} Seul, le CPG donne 0,6 < 1 ; avec le biais de mode, 0,6 + 0,6 = 1,2 > 1. Changer de sens = déplacer le biais. Quatre IN sont un minimum : AVANT = (swing $\wedge$ avant) $\vee$ (stance $\wedge$ arrière) est un XNOR, qu'un seul neurone à seuil ne peut pas calculer.
+    \item \textbf{\num{5}Compteur de virage (original).} Chaque décharge de A ajoute $1/n + 0{,}01$ au COMPTEUR (fuite 100~s) : il décharge 1 cycle sur $n$, et INHIB bloque les IN de ce côté pendant $55\,\mathrm{ms}\cdot\ln 15 \approx 149$~ms. Les pattes se lèvent et se posent sans pousser (idée : \cite[p.~112]{otis2004}).
+  \end{itemize}}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{05}{Résultats}
+  \includegraphics[width=\linewidth]{figures/p1_cpg_demarche}
+  \legende{Fig. 1 --- Marche avant.}{A et B alternent, une décharge par phase (période 197~ms à I\_drive = 2). Les deux tripodes se relaient : trois pattes sont toujours au sol.}
+  \includegraphics[width=\linewidth]{figures/p1_trajectoires}
+  \legende{Fig. 2 --- Même rythme, seul le biais change.}{$x$ = +2,00 en avant et −2,00 en arrière ; θ revient à 0 à chaque cycle, d'où la ligne droite ($y$ = −0,07 : dandinement du tripode). En rotation, $v_G = -v_D$ : θ = −4,0~rad en 2~s et le centre reste en place ($|x|, |y| < 0{,}04$).}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \includegraphics[width=\linewidth]{figures/p1_vitesse}
+  \legende{Fig. 3 --- Une seule entrée règle la vitesse.}{De I\_drive = 1,5 à 3 : fréquence 3,4 → 7,6~Hz, vitesse 0,70 → 1,50 unité/s ($\propto$ poussées par seconde).}
+  \begin{minipage}[c]{0.42\linewidth}\includegraphics[width=\linewidth]{figures/p1_cercles}\end{minipage}\hfill
+  \begin{minipage}[c]{0.54\linewidth}\petit
+    \begin{tabularx}{\linewidth}{@{}X r r@{}}
+      \toprule
+      $n$ & \textbf{R prévu} & \textbf{R mesuré}\\ \midrule
+      \code{1} & \code{0,50 L} & \code{0,50 L}\\
+      \code{2} & \code{1,50 L} & \code{1,50 L}\\
+      \code{3} & \code{2,50 L} & \code{2,55 L}\\ \bottomrule
+    \end{tabularx}
+  \end{minipage}
+  \legende{Fig. 4 --- Cercles.}{Le côté droit saute 1 pas sur $n$ : $v_D = v_G(1 - 1/n)$, d'où $R = (L/2)(2n - 1)$. R mesuré = distance / angle total ; écart ≤ 2~\%.}
+  \includegraphics[width=\linewidth]{figures/p1_N200}
+  \legende{Fig. 5 --- 200 paires : on ne change que N\_PAIRES.}{La règle $(k + s) \bmod 2$ alterne les segments ; un délai $k\Delta$ crée une onde métachronale de l'avant vers l'arrière. Il reste 4 neurones de virage, quel que soit $N$.}
+}
+\end{columns}
+
+% ------------------------------------------------------------------ Partie II
+\block{}{\bandeau{PARTIE II — SYSTÈME PSEUDO-AUTONOME}}
+
+\begin{columns}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{06}{Des neurones à la place des réglages}
+  {\petit Le réseau de la Partie I reste identique ; mode, virage et I\_drive viennent maintenant de neurones de commande pilotés par des capteurs.\par}
+  \vspace{4mm}
+  \resizebox{\linewidth}{!}{\input{schema_partie2}}\par
+  \vspace{5mm}
+  {\fontsize{17.5pt}{23.5pt}\selectfont
+  \begin{itemize}[label={}]
+    \item \textbf{Capteurs.} 4 groupes de 10 neurones aux seuils 0,2 à 1,8 : un contact plus fort recrute plus de neurones, qui déchargent plus vite \cite[§2.1]{porcino1990}.
+    \item \textbf{Commandes.} CMD\_AV reçoit un biais (I\_CMD = 1,8) : marche avant par défaut. CMD\_AV $\dashv\vdash$ CMD\_AR (gagnant-prend-tout) ; un contact de face excite CMD\_AR et inhibe CMD\_AV \cite[p.~1437]{cruse1998}.
+    \item \textbf{Persistance.} Synapses lentes ($\tau_{\mathrm{persist}}$ = 800~ms) : la réaction dure plus longtemps que le contact.
+    \item \textbf{Virages gradués.} Un flanc touché pousse le COMPTEUR opposé au seuil : plus le contact est fort, plus il saute de pas ; fort, il active aussi CMD\_AR : pivot \cite[p.~112--113]{otis2004}.
+    \item \textbf{Hiérarchie.} Inhibition entre capteurs : avant > flancs > arrière ; entre G et D, le plus fort gagne \cite[p.~1436]{cruse1998}.
+  \end{itemize}}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \titre{07}{Résultats}
+  \includegraphics[width=\linewidth]{figures/p2_raster_recul}
+  \legende{Fig. 6 --- Obstacle de face → reculer.}{SENS\_AV fait basculer CMD\_AV\_G vers CMD\_AR\_G 36~ms après le contact. Le CPG ne change pas : seuls AVANT et ARRIÈRE s'inversent. L'hexapode recule de 1,2 unité pendant 1,3~s, puis CMD\_AV reprend la main et la marche avant repart.}
+  \includegraphics[width=\linewidth]{figures/p2_acceleration}
+  \legende{Fig. 7 --- Heurté par derrière → accélérer.}{SENS\_AR excite A et B par une synapse lente : la fréquence passe de 5,1~Hz à 5,8, 7,3 ou 9,8~Hz (intensité 0,3, 0,6 ou 1,0), puis redescend progressivement vers 5,1~Hz.}
+}
+\column{0.333}
+\block{}{\raggedright%
+  \centering\includegraphics[width=0.6\linewidth]{figures/p2_virages}\par\raggedright
+  \legende{Fig. 8 --- Obstacle sur un flanc → tourner du côté opposé.}{Contact à droite à 0,5~s (étoile) : faible (0,3), courbe douce, θ = +19° ; moyen (0,6), virage serré, +76° ; fort (1,0), CMD\_AR\_G s'active : pivot, +122°. Le contact à gauche (0,6) donne le virage miroir (−84°).}
+  \encadre{\fontsize{17pt}{22pt}\selectfont\textbf{Adapter le comportement par les paramètres (annexe)}\par\vspace{2mm}
+    \begin{tabularx}{\linewidth}{@{}>{\ttfamily}l X@{}}
+      W\_AV\_AR & intensité minimale pour reculer (sensibilité)\\
+      $\tau$\_persist & durée de la réaction\\
+      DELAI\_SENS & temps de réaction (distance avant de reculer)\\
+      W\_LAT\_AR & intensité où le virage devient un pivot\\
+      seuils capteurs & plage d'intensités distinguées\\
+    \end{tabularx}\par\vspace{2mm}
+    {\color{encre2}Bonus (annexe) : en boucle fermée dans une arène, l'hexapode réagit seul à 9 contacts en 30~s ; avec une habituation, l'accélération diminue à chaque poussée répétée.}}
+}
+\end{columns}
+
+% ------------------------------------------------------------------ Discussion
+\block{}{\noindent\leaders\hrule height 1.2mm\hfill\null}
+\begin{columns}
+\column{0.666}
+\block{}{\raggedright%
+  \titre{08}{Discussion}
+  \begin{minipage}[t]{0.48\linewidth}\fontsize{17.5pt}{23.5pt}\selectfont
+    \textbf{Ce qui fonctionne}\par\vspace{2mm}
+    Un seul métronome sert à toutes les tâches : direction, rotation et virage ne font que moduler (biais, inhibition) le même rythme, comme le CPG biologique \cite{otis2004}. Passer à 200 paires ne touche qu'une variable, et les neurones de commande ne dépendent pas de $N$. Les prédictions tiennent : $R = (L/2)(2n - 1)$ à 2~\% près, vitesse proportionnelle à la fréquence. En Partie II, les capteurs modifient le rythme sans le remplacer.
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\linewidth}\fontsize{17.5pt}{23.5pt}\selectfont
+    \textbf{Limites et pistes}\par\vspace{2mm}
+    Pas de rétroaction des pattes : le rythme est imposé, sans capteurs de charge ou de position comme chez Beer \cite{beer1992} et Cruse \cite{cruse1998}. Le virage procède par pas entiers sautés, et la durée du blocage (≈ 149~ms) est réglée pour I\_drive ≈ 2 au lieu de suivre la fréquence ; un blocage déclenché par B s'y adapterait. La cinématique est simplifiée (poussée = déplacement fixe $d$). Les poids de la Partie II sont réglés à la main ; un apprentissage (STDP) est une suite naturelle.
+  \end{minipage}
+}
+\column{0.333}
+\block{}{\raggedright%
+  {\condensed\fontsize{30pt}{34pt}\selectfont Références}\par\vspace{2mm}
+  {\fontsize{12.5pt}{15.5pt}\selectfont
+  \makeatletter\renewcommand\section[2]{}\makeatother
+  \bibliographystyle{unsrt}
+  \bibliography{references}\par
+  \vspace{2mm}\textbf{Remerciements.} [À compléter ou retirer]\par}
+}
+\end{columns}
+
+\end{document}

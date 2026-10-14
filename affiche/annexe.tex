@@ -1,0 +1,145 @@
+% =====================================================================
+% Annexe (page 2) de l'affiche -- Probleme 1, GEI723 (Automne 2026)
+% Compilation : xelatex annexe ; bibtex annexe ; xelatex annexe ; xelatex annexe
+% Les deux pages sont reunies dans affiche_complete.pdf par affiche_complete.tex.
+% =====================================================================
+\documentclass[20pt, a0paper, portrait, margin=0mm, innermargin=24mm,
+  colspace=19mm, subcolspace=0mm, blockverticalspace=6mm]{tikzposter}
+\input{style}
+
+% L'annexe a plus de place : texte plus grand que sur la page 1
+\renewcommand{\petit}{\fontsize{21pt}{28.5pt}\selectfont}
+\renewcommand{\corps}{\fontsize{22pt}{30pt}\selectfont}
+\renewcommand{\legende}[2]{\par\vspace{3mm}{\fontsize{20pt}{27pt}\selectfont\color{encre2}\textbf{#1} #2\par}\vspace{6mm}}
+\newcommand{\tableparam}[1]{{\fontsize{21pt}{28pt}\selectfont
+  \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.25\linewidth} >{\raggedright\arraybackslash}X >{\raggedleft\arraybackslash}p{0.31\linewidth}@{}}
+    \toprule \textbf{Élément} & \textbf{Paramètre} & \textbf{Valeur}\\ \midrule
+    #1 \bottomrule
+  \end{tabularx}}\par}
+
+\begin{document}
+
+\settitle{\begin{minipage}{\linewidth}\raggedright
+  {\ttfamily\fontsize{17pt}{20pt}\selectfont\color{gris}
+  GEI723 · PROBLÈME 1 · ANNEXE (PAGE 2)\hfill RAPHAËL BARRETTE · ÉMILE [NOM]\par}
+  \vspace{6mm}
+  {\condensed\fontsize{60pt}{64pt}\selectfont Annexe : paramètres, justifications et expériences complémentaires\par}
+  \vspace{6mm}
+  \resizebox{\linewidth}{!}{\raster{0.5}}
+\end{minipage}}
+\maketitle[width=\dimexpr\textwidth-48mm\relax, titletotopverticalspace=20mm, titletoblockverticalspace=12mm, innersep=0mm]
+
+\begin{columns}
+% ================================================================== colonne 1
+\column{0.333}
+\block{}{\raggedright%
+  \titre{A1}{Paramètres de la Partie I}
+  \tableparam{
+    Tous & seuil · reset · réfractaire & 1 · 0 · 2 ms\\
+    CPG (A, B) & $\tau$ · $\tau_i$ · $\tau_a$ · inc$_a$ & 10 · 20 · 200 ms · 1,5\\
+    CPG, départ & $v_0$ · $a_0$ (B part fatigué) & [0,5 ; 0] · [0 ; 1]\\
+    Motoneurones & $\tau$ · $\tau_i$ & 2 ms · 10 ms\\
+    Interneurones ET & $\tau$ · $\tau_i$ (TAU\_BLOC) & 2 ms · 55 ms\\
+    COMPTEUR · INHIB & $\tau$ & 100 s · 2 ms\\
+    Poids & W\_AB · W\_MOT · W\_CONTRA · W\_INHIB & 4 · 1,5 · 3 · 3\\
+    Porte ET & W\_ET · B\_ET & 0,6 · 0,6\\
+    Virage & A → COMPTEUR & 1/n\_saut + 0,01\\
+    Délais & CPG → pattes · onde & 3 ms + k$\Delta$\\
+  }
+  \vspace{3mm}
+  {\petit\color{encre2} Durée du blocage : un IN biaisé décharge si $0{,}6 - g_i + 0{,}6 > 1$, soit $g_i < 0{,}2$ ; avec $g_i = 3\,e^{-t/55\,\mathrm{ms}}$, $t = 55 \ln 15 \approx 149$~ms. Le blocage couvre les deux phases d'un cycle de 197~ms et se lève avant le cycle suivant.\par}
+  \vspace{16mm}
+  \titre{A2}{Paramètres de la Partie II}
+  \tableparam{
+    Capteurs & M · K · seuils · $\tau$ & 10 · 2 · 0,2→1,8 · 10 ms\\
+    Commandes & I\_CMD · W\_WTA · $\tau$ & 1,8 · 1 · 10 ms\\
+    Persistance & TAU\_PERSIST · DELAI\_SENS & 800 ms · 0 ms\\
+    Mode (CMD → IN) & W\_MODE · G\_MODE · $\tau_s$ des IN & 0,5 · 0,9 · 50 ms\\
+    Face & W\_AV\_AR (+) · W\_AV\_AV (−) & 0,05 · 0,04\\
+    Flancs & W\_LAT\_CPT · W\_LAT\_AR & 0,04 · 0,025\\
+    Compteurs & W\_CPT · TAU\_CPT · W\_AR\_CPT & 0,35 · 150 ms · 3\\
+    Arrière & W\_AR\_CPG (lente, vers A et B) & 0,01\\
+    Sélection & W\_S\_AV · W\_S\_LAT · W\_S\_GD & 2 · 2 · 1\\
+    Habituation & U · $\tau_{\mathrm{rec}}$ & 0,05 · 4 s\\
+  }
+  \vspace{3mm}
+  {\petit\color{encre2} Le biais B\_ET devient un courant lent : chaque décharge de CMD\_AV\_s ($\approx$ 100~Hz) fait $g_s \leftarrow g_s + 0{,}5\,(0{,}9 - g_s)$ sur IN\_sw\_av et IN\_st\_ar. $g_s$ oscille entre $\approx$ 0,63 et 0,76, au-dessus des 0,4 nécessaires ($0{,}6 + g_s > 1$), et retombe en $\approx$ 50~ms quand la commande s'arrête.\par}
+  \vspace{16mm}
+  \titre{A3}{Pourquoi quatre interneurones ?}
+  {\corps Sans IN, AVANT recevrait le swing (poids $w_{sw}$), le stance ($w_{st}$) et un biais $b$ qui dépend du mode. Il faudrait :\par}
+  \vspace{3mm}
+  {\fontsize{22pt}{29pt}\selectfont
+  \begin{tabularx}{\linewidth}{@{}l X X@{}}
+    \toprule \textbf{Mode} & \textbf{Swing → AVANT} & \textbf{Stance → AVANT}\\ \midrule
+    avant & $w_{sw} + b_{av} > 1$ & $w_{st} + b_{av} < 1$\\
+    arrière & $w_{sw} + b_{ar} < 1$ & $w_{st} + b_{ar} > 1$\\ \bottomrule
+  \end{tabularx}\par}
+  \vspace{3mm}
+  {\corps La colonne swing impose $b_{av} > b_{ar}$, la colonne stance $b_{ar} > b_{av}$ : contradiction. AVANT calcule un XNOR (phase, mode), non linéairement séparable ; il faut une couche cachée. Chaque IN fait un ET, AVANT et ARRIÈRE font le OU de deux IN. Choisir la source d'AVANT en Python marcherait aussi, mais le mode deviendrait un recâblage au lieu d'un signal.\par}
+  \vspace{16mm}
+  \titre{A4}{Reproduire}
+  \encadre{\ttfamily\fontsize{19pt}{27pt}\selectfont
+    pip install -r requirements.txt\\
+    python run\_all.py \hfill\# expériences → figures/\\
+    python poster\_figs.py \hfill\# figures de l'affiche\\
+    python annexe\_figs.py \hfill\# figures de l'annexe\\
+    cd affiche \&\& ./build.sh \hfill\# PDF (XeLaTeX)}
+}
+% ================================================================== colonne 2
+\column{0.333}
+\block{}{\raggedright%
+  \titre{A5}{Capteurs : l'intensité devient un nombre de décharges}
+  \includegraphics[width=\linewidth]{figures/a_recrutement}
+  \legende{Fig. A1 --- Recrutement.}{Les 10 neurones ont des seuils de 0,2 à 1,8 et reçoivent 2 × intensité : un contact faible en fait décharger quelques-uns, lentement ; un contact fort en recrute plus, et plus vite.}
+  \vspace{14mm}
+  \titre{A6}{Recul selon l'intensité}
+  \includegraphics[width=\linewidth]{figures/p2_recul_intensites}
+  \legende{Fig. A2 --- Plus l'impact est fort, plus le recul dure.}{Le recul (activité de CMD\_AR\_G) est nul sous 0,3 ; il dure 0,16~s à 0,3, 1,03~s à 0,6 et 1,53~s à 1,0 : le courant lent intègre l'intensité du contact.}
+  \vspace{14mm}
+  \titre{A7}{Deux contacts en même temps}
+  \includegraphics[width=\linewidth]{figures/a_selection}
+  \legende{Fig. A3 --- Sélection d'action : avant > flancs > arrière.}{Trait plein : contacts simultanés ; tirets : chaque contact seul (le tiret du contact gagnant est caché sous le trait plein). Face bat flanc, le flanc le plus fort gagne, flanc bat arrière.}
+  {\fontsize{20pt}{27pt}\selectfont
+  \begin{tabularx}{\linewidth}{@{}X r r r r@{}}
+    \toprule \textbf{Conflit} & \textbf{SENS\_G} & \textbf{SENS\_D} & \textbf{SENS\_AV} & \textbf{SENS\_AR}\\ \midrule
+    AV 0,6 + D 0,6 & 0 & 1 & \textbf{73} & 0\\
+    G 0,4 + D 0,8 & 0 & \textbf{105} & 0 & 0\\
+    D 0,6 + AR 0,8 & 0 & \textbf{73} & 0 & 1\\ \bottomrule
+  \end{tabularx}\par}
+  \vspace{3mm}
+  {\petit\color{encre2} Nombre de décharges des capteurs pendant chaque conflit : le groupe prioritaire supprime presque entièrement l'autre (inhibition rapide entre capteurs).\par}
+  \vspace{16mm}
+  \titre{A10}{Bonus : habituation}
+  \includegraphics[width=\linewidth]{figures/a_habituation}
+  \legende{Fig. A7 --- Habituation.}{Avec une dépression synaptique à court terme sur SENS\_AR → CPG (U = 0,05, $\tau_{\mathrm{rec}}$ = 4~s), l'accélération diminue à chaque nouvelle poussée.}
+}
+% ================================================================== colonne 3
+\column{0.333}
+\block{}{\raggedright%
+  \titre{A8}{Adapter le comportement par les paramètres}
+  \includegraphics[width=0.49\linewidth]{figures/a_sensibilite}\hfill
+  \includegraphics[width=0.49\linewidth]{figures/a_persistance}\par\vspace{3mm}
+  \includegraphics[width=0.49\linewidth]{figures/a_latence}\hfill
+  \includegraphics[width=0.49\linewidth]{figures/a_pivot}\par\vspace{3mm}
+  \begin{minipage}[c]{0.49\linewidth}\includegraphics[width=\linewidth]{figures/a_seuils}\end{minipage}\hfill
+  \begin{minipage}[c]{0.48\linewidth}\fontsize{18.5pt}{25pt}\selectfont\color{encre2}\raggedright
+    \textbf{Fig. A4 --- Un paramètre, un comportement.} W\_AV\_AR = 0,03 → 0,08 abaisse l'intensité minimale de recul de 0,4 à 0,25. Doubler $\tau_{\mathrm{persist}}$ double la durée du recul (0,76 → 1,53 → 3,07~s à l'intensité 1). Chaque 100~ms de délai capteur ajoute $\approx$ 0,1 de distance parcourue avant de reculer. W\_LAT\_AR = 0,02 → 0,035 fait passer le seuil du pivot de 0,8 à 0,6. Des seuils resserrés (0,9 à 1,1) ne distinguent presque plus les intensités.
+  \end{minipage}
+  \vspace{16mm}
+  \titre{A9}{Partie II à N paires, boucle fermée}
+  \begin{minipage}[t]{0.49\linewidth}
+    \includegraphics[width=\linewidth]{figures/a_N_partie2}\par
+    {\fontsize{18pt}{24pt}\selectfont\color{encre2}\textbf{Fig. A5.} Contact droit à 0,5~s puis de face à 3~s : capteurs et commandes sont par côté, on ne change que N\_PAIRES (N = 20 et 200 se superposent).\par}
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.49\linewidth}
+    \includegraphics[width=\linewidth]{figures/p2_arene}\par
+    {\fontsize{18pt}{24pt}\selectfont\color{encre2}\textbf{Fig. A6 --- Boucle fermée.} Plus aucun contact n'est scripté : l'hexapode heurte les murs et réagit seul (9 contacts en 30~s ; ici W\_AV\_CPT = 0,12 ajoute un virage au recul).\par}
+  \end{minipage}
+  \vspace{16mm}
+  \titre{A11}{Activité du réseau lors d'un pivot}
+  \includegraphics[width=\linewidth]{figures/a_raster_pivot}
+  \legende{Fig. A8 --- Pivot puis virage.}{Le contact fort à droite active CMD\_AR\_G pendant $\approx$ 0,6~s : les pattes gauches reculent, le corps pivote. CMD\_AR inhibe le compteur pendant ce temps ; ensuite le courant lent pousse COMPTEUR\_G au seuil plusieurs fois, INHIB\_G bloque les IN gauches et le virage continue jusqu'à θ $\approx$ +122°.}
+}
+\end{columns}
+
+\end{document}
